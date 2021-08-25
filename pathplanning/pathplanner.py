@@ -12,9 +12,10 @@ class PathPlanner:
         self.dest = [1.0]
         self.close_list = None
         self.node_searched = 0
+        self.obstacles = []
         self.path = []
 
-    def update(self, map, source, dest):
+    def update(self, map, source, dest, obstacles = []):
         self.map = map
         self.width = map.width
         self.height = map.height
@@ -23,6 +24,7 @@ class PathPlanner:
         self.open_list = MinPriorList()
         self.close_list = np.zeros((self.height, self.width), dtype=bool)
         self.node_searched = 0
+        self.obstacles = obstacles if len(obstacles) != 0 else []
 
     def start_search(self):
         print("SEARCH xhSTARTED!")
@@ -49,7 +51,7 @@ class PathPlanner:
                 start_to_append = True
             if start_to_append:
                 path.append(pos)
-
+ 
         self.path = path
         print(self.path)
         # print(f'PATH:{path}')
@@ -84,7 +86,11 @@ class PathPlanner:
             pos = location.get_pos()
             new_pos = (pos[0] + offset[0], pos[1] + offset[1])
             #此处判断节点是否超出了地图范围
-            if new_pos[0] < 0 or new_pos[0] >= self.width or new_pos[1] < 0 or new_pos[1] >= self.height or abs(self.map.dem_map[pos[1],pos[0]] - self.map.dem_map[new_pos[1],new_pos[0]]) > 0.5:
+            if new_pos[0] < 0 or new_pos[0] >= self.width or new_pos[1] < 0 or new_pos[1] >= self.height:
+                continue
+            if abs(self.map.dem_map[pos[1],pos[0]] - self.map.dem_map[new_pos[1],new_pos[0]]) > 0.5:
+                continue
+            if new_pos in self.obstacles:
                 continue
             pos_list.append(new_pos)
         return pos_list
