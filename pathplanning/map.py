@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LightSource
 from matplotlib import cm
+from helper import Coordination
 
 class Map:
     def __init__(self):
@@ -43,5 +44,11 @@ class Map:
         self.grid_size = grid_size
         self.map = np.zeros((self.height, self.width), dtype=int)
         print(f'DEM map loaded. Width={self.width},height={self.height},grid size={self.grid_size}.')
+
+    def get_z_index(self, x, y):
+        return self.dem_map[y][x]
+
+    def get_coordination(self, x, y):
+        return Coordination(x, y, self.get_z_index(x, y))
 
 
