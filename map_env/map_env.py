@@ -1,12 +1,51 @@
+import pybullet as p
+import sys
+import time
+from collections import deque
+import cv2
 import numpy as np
+import pybullet_data
 from gym import spaces, Env
-import random
+from gym.utils import seeding
+from map import Map
+
+
+sys.path.insert(1, "../bullet3/build_cmake/examples/pybullet")
+timeStep = 1 / 240.0
+
+
+class PhysClientWrapper:
+    """
+    This is used to make sure each BulletRobotEnv has its own physicsClient and
+    they do not cross-communicate.
+    """
+
+    def __init__(self, other, physics_client_id):
+        self.other = other
+        self.physicsClientId = physics_client_id
+
+    def __getattr__(self, name):
+        if hasattr(self.other, name):
+            attr = getattr(self.other, name)
+            if callable(attr):
+                return lambda *args, **kwargs: self._wrap(attr, args, kwargs)
+            return attr
+        raise AttributeError(name)
+
+    def _wrap(self, func, args, kwargs):
+        kwargs["physicsClientId"] = self.physicsClientId
+        return func(*args, **kwargs)
+
 
 
 class MapEnv(Env):
     def __init__(self,
                  map_row=8,
-                 map_column=8):
+                 map_column=8,
+                 n_substeps=5,  # Number of simulation steps to do in every env step.
+                 done_after=float("inf"),
+                 use_gui=False,
+                 ):
 
         self.row = map_row
         self.column = map_column
@@ -20,6 +59,20 @@ class MapEnv(Env):
         self.observation_space = spaces.Box(
             -np.inf, np.inf, shape=(self.row, self.column), dtype='float32')
 
+        ### pybullet setting ###
+        if use_gui:
+            physics_client = p.connect(p.GUI)
+        else:
+            physics_client = p.connect(p.DIRECT)
+
+        self.p = PhysClientWrapper(p, physics_client)
+        self.p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+
+        ### initilize map ###
+        self.map = Map(self.p)
+
+
 
     def reset(self):
         # Reset the state of the environment to an initial state
@@ -32,27 +85,7 @@ class MapEnv(Env):
 
     def _next_observation(self):
         # Get the data points for the last 5 days and scale to between 0-1
-        frame = np.array([
-            self.df.loc[self.current_step: self.current_step +
-                                           5, 'Open'].values / MAX_SHARE_PRICE,
-            self.df.loc[self.current_step: self.current_step +
-                                           5, 'High'].values / MAX_SHARE_PRICE,
-            self.df.loc[self.current_step: self.current_step +
-                                           5, 'Low'].values / MAX_SHARE_PRICE,
-            self.df.loc[self.current_step: self.current_step +
-                                           5, 'Close'].values / MAX_SHARE_PRICE,
-            self.df.loc[self.current_step: self.current_step +
-                                           5, 'Volume'].values / MAX_NUM_SHARES,
-        ])
-        # Append additional data and scale each value to between 0-1
-        obs = np.append(frame, [[
-            self.balance / MAX_ACCOUNT_BALANCE,
-            self.max_net_worth / MAX_ACCOUNT_BALANCE,
-            self.shares_held / MAX_NUM_SHARES,
-            self.cost_basis / MAX_SHARE_PRICE,
-            self.total_shares_sold / MAX_NUM_SHARES,
-            self.total_sales_value / (MAX_NUM_SHARES * MAX_SHARE_PRICE),
-        ]], axis=0)
+
         return obs
 
 

@@ -35,16 +35,16 @@ class PhysClientWrapper:
         return func(*args, **kwargs)
 
 
-class BulletRobotEnv(Env):
+class BulletMapEnv(Env):
     def __init__(self,
                  n_actions,  # Dimension of action vector.
-                 # n_substeps,  # Number of simulation steps to do in every env step.
+                 n_substeps,  # Number of simulation steps to do in every env step.
                  observation_type="low_dim",
                  done_after=float("inf"),
                  use_gui=False,
                  frame_memory_len=0):
 
-        # self.n_substeps = n_substeps
+        self.n_substeps = n_substeps
 
         ### meta data ###
         self.metadata = {
@@ -109,8 +109,8 @@ class BulletRobotEnv(Env):
 
     @property
     def dt(self):
-        # return timeStep * self.n_substeps
-        return timeStep
+        return timeStep * self.n_substeps
+        # return timeStep
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -126,17 +126,10 @@ class BulletRobotEnv(Env):
 
         self._set_action(action)
 
-        ### simulate until stable ###
-        # for i in range(self.n_substeps):
-        #     self.p.stepSimulation()
+        ## simulate until stable ###
+        for i in range(self.n_substeps):
+            self.p.stepSimulation()
 
-
-        ### simulate until reach goal pos ###
-        # reached_ik_goal = False
-        #
-        # while not reached_ik_goal:
-        #     reached_ik_goal = self._reach_ik_goal
-        #     self.p.stepSimulation()
 
         # self._step_callback()
 
