@@ -3,8 +3,9 @@ import numpy as np
 import math
 from helper import Coordination
 
+
 class PathNode:
-    def __init__(self, slope_val, map, source, destination, target, parent = None, obstacles = []):
+    def __init__(self, slope_val, map, source, destination, target, parent = None, isStepping = False, obstacles = []):
         self.parent = parent
 
         self.slope_val = slope_val
@@ -20,6 +21,7 @@ class PathNode:
         self.obstacles = obstacles if len(obstacles) != 0 else []
         self.path = []
         self.children = []
+        self.isStepping = isStepping
 
         self.node_searched = 0
 
@@ -33,13 +35,17 @@ class PathNode:
         self.open_list.push(start_node)
         # 执行一次搜索
         self.open_new_node()
+        result = start_node
         # 开始循环搜索
         while not self.open_list.is_empty():
             node_to_open = self.open_list.top()
             if node_to_open.get_pos() == (self.destination.x, self.destination.y):
+                result = node_to_open
+                self.source = result.get_coordination(self.map)
                 print("SEARCH FINISHED!")
                 break
             if self.node_searched > 2000:
+                result = node_to_open
                 break
             self.open_new_node()
             if self.node_searched % 100 == 0:
@@ -47,12 +53,13 @@ class PathNode:
         print(f'Searched {self.node_searched} nodes.')
         path = []
         # 对路径进行溯源
-        path.append(node_to_open.get_pos())
-        path_iterator = PathIterator(node_to_open)
+        path.append(result.get_pos())
+        path_iterator = PathIterator(result)
         for pos in path_iterator:
             path.append(pos)
  
         self.path = path
+        self.obstacles += self.path
         print(self.path)
         # print(f'PATH:{path}')
         print(f'MIN COST:{node_to_open.cost}')
@@ -79,8 +86,8 @@ class PathNode:
                 length += len(temp.path)
                 temp = temp.parent
             paths_len.append(length) 
-        max_len = max(paths_len)
-        shortest_leaf = leafs[paths_len.index(max_len)]
+        min_len = min(paths_len)
+        shortest_leaf = leafs[paths_len.index(min_len)]
         return shortest_leaf
 
     def get_all_leaf(self):
@@ -94,14 +101,31 @@ class PathNode:
 
     def expand(self):
         if self.source.z == self.target.z:
-            self.children.append(PathNode(self.slope_val, self.map, self.source, self.target, self.target, parent = self, obstacles = self.obstacles))
+            self.children.append(PathNode(self.slope_val, self.map, self.source, self.target, self.target, parent = self, isStepping = False, obstacles = list(self.obstacles)))        
 
         # Find the slope
+        vals = self.map.dem_map - self.source.z
+        temps = np.where(np.absolute(vals) == self.slope_val)
+        slope_pts = np.flip(np.transpose(temps), axis = 1)
+
+        for slope_pt in slope_pts.tolist():
+            if (slope_pt[0], slope_pt[1]) in self.obstacles:
+                continue
+            if vals[slope_pt[1]][slope_pt[0]] > 0:
+                stop = self.find_slope_destination(self.map.get_coordination(slope_pt[0],slope_pt[1]), True)
+            else:
+                stop = self.find_slope_destination(self.map.get_coordination(slope_pt[0],slope_pt[1]), False)
+
+            if (stop.x, stop.y) in self.obstacles:
+                continue
+            print(stop.x, stop.y, stop.z)
+            self.children.append(PathNode(self.slope_val, self.map, self.source, stop, self.target, parent = self, isStepping=True, obstacles = list(self.obstacles)))
         
         for child in self.children:
+            child.search()
             if child.destination != child.target:
                 child.expand()
-            child.search()
+            
 
     def calc_cost(self, pos, new_pos):
         if pos.x != new_pos.x and pos.y != new_pos.y:
@@ -134,8 +158,13 @@ class PathNode:
             if new_pos.x < 0 or new_pos.x >= self.map.width or new_pos.y < 0 or new_pos.y >= self.map.height:
                 continue
             new_pos = self.map.get_coordination(new_pos.x, new_pos.y)
-            if abs(pos.z - new_pos.z) >= 0.5:
-                continue
+            if self.isStepping:
+                if abs(pos.z - new_pos.z) > self.slope_val:
+                    continue
+            else:
+                if abs(pos.z - new_pos.z) >= self.slope_val:
+                    continue
+
             if len(self.obstacles) != 0:
                 if (new_pos.x, new_pos.y) in self.obstacles:
                     continue
@@ -174,6 +203,43 @@ class PathNode:
     
     def in_close_list(self, new_pos):
         return self.close_list[new_pos.y, new_pos.x] == True
+
+    def find_slope_destination(self,slope_pt, isStepOn):
+        print("SEARCH xhSTARTED! - find_slope_destination")
+        # 将起点加入到open_list中
+        start_pt = slope_pt
+        searched = MinPriorList()
+        searched.list.append(start_pt)
+        result = start_pt
+        # 开始循环搜索
+        while not searched.is_empty():
+            result = searched.pop()
+            for item in self.find_further_slope_pts(result, isStepOn):
+                searched.list.append(item)
+            print(str(result.x) + " " + str(result.y) + " " + str(result.z))
+        return result
+
+    def find_further_slope_pts(self, slope_pt, isStepOn):
+            	#对应8个方向,也可以根据需要改为4个方向
+        offsets = [(-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
+        pos_list = []
+        for offset in offsets:
+            pos = slope_pt
+            new_pos = Coordination(pos.x + offset[0], pos.y + offset[1])
+            #此处判断节点是否超出了地图范围
+            if new_pos.x < 0 or new_pos.x >= self.map.width or new_pos.y < 0 or new_pos.y >= self.map.height:
+                continue
+            new_pos = self.map.get_coordination(new_pos.x, new_pos.y)
+            if isStepOn:
+                if (new_pos.z - pos.z) > self.slope_val or (new_pos.z - pos.z) <= 0:
+                    continue
+            else:
+                if (pos.z - new_pos.z) > self.slope_val or (pos.z - new_pos.z) <= 0:
+                    continue
+            pos_list.append(new_pos)
+        return pos_list
+
+
 
 class PathIterator:
     def __init__(self, node):

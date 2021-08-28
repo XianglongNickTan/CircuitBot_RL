@@ -53,6 +53,7 @@ class Analyzer:
         plt.show()
 
         # 绘制地图以及路径
+    
     def draw_map_3D(self):
         x = np.arange(0, self.map.width, 1)
         y = np.arange(0, self.map.height, 1)
@@ -74,15 +75,23 @@ class Analyzer:
         ax.set_zlim(0,4)
 
          # 绘制三维路线图
-        pathT = np.transpose(self.paths[0])
-        Xp = pathT[0]
+        pathT = np.transpose(self.paths[0])  # [[1,2],[1,2],[1,2]...]
+        Xp = pathT[0] #[[1,1,1,1,1], [2,2,2,2]...]
         Yp = pathT[1]
         Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.paths[0]]
-        ax.scatter(Xp,Yp,Zp,c='r',s=200)
+        ax.scatter(Xp,Yp,Zp,c='g',s=200)
 
         pathT2 = np.transpose(self.paths[1])
         Xp2 = pathT2[0]
         Yp2 = pathT2[1]
         Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.paths[1]]
         ax.scatter(Xp2,Yp2,Zp2,c='b',s=200)
+
+        slope_pts = np.transpose(np.where(np.absolute(self.map.dem_map - 0) == self.slope_val))
+        slope_ptsT = np.transpose(slope_pts)
+        Xp3 = slope_ptsT[1]
+        Yp3 = slope_ptsT[0]
+        Zp3 = [self.map.dem_map[pos[0], pos[1]] for pos in slope_pts]
+
+        ax.scatter(Xp3,Yp3,Zp3,c='r',s=800)
         plt.show()
