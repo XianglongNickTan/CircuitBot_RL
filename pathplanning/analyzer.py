@@ -26,7 +26,14 @@ class Analyzer:
         self.planners[0].update(self.slope_val, self.map, self.pole_pairs[0][0], self.pole_pairs[0][1])
         self.paths[0] = self.planners[0].search()
 
-        self.planners[1].update(self.slope_val, self.map, self.pole_pairs[1][0], self.pole_pairs[1][1], self.planners[0].path)
+        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+
+        self.planners[1].update(self.slope_val, self.map, self.pole_pairs[1][0], self.pole_pairs[1][1], self.paths[0])
         self.paths[1] = self.planners[1].search()
 
      # 绘制地图以及路径

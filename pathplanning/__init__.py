@@ -2,6 +2,7 @@ from analyzer import Analyzer
 from map import Map
 import numpy as np
 import time
+from maps.bigmap import bigmap
 
 def map1():
     return np.array(
@@ -52,9 +53,9 @@ def map2():
 
 analyzer = Analyzer()
 array = map2()
-analyzer.updateMap(array)
-analyzer.update_pole_pair(0,[2,15],[22,15])
-analyzer.update_pole_pair(1,[2,5],[24,3])
+analyzer.updateMap(bigmap())
+analyzer.update_pole_pair(0,[5,42],[40,36])
+analyzer.update_pole_pair(1,[5,25],[42,25])
 t1 = time.time()
 analyzer.search()
 t2 = time.time() - t1

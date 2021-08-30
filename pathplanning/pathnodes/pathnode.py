@@ -22,6 +22,7 @@ class PathNode:
         self.path = []
         self.children = []
         self.isStepping = isStepping
+        self.reached = False
 
         self.node_searched = 0
 
@@ -42,28 +43,28 @@ class PathNode:
             if node_to_open.get_pos() == (self.destination.x, self.destination.y):
                 result = node_to_open
                 self.source = result.get_coordination(self.map)
+                self.reached = True
                 print("SEARCH FINISHED!")
-                break
-            if self.node_searched > 2000:
-                result = node_to_open
                 break
             self.open_new_node()
             if self.node_searched % 100 == 0:
                 print(f'Searched {self.node_searched} nodes.')
         print(f'Searched {self.node_searched} nodes.')
-        path = []
-        # 对路径进行溯源
-        path.append(result.get_pos())
-        path_iterator = PathIterator(result)
-        for pos in path_iterator:
-            path.append(pos)
- 
-        self.path = path
-        self.obstacles += self.path
-        print(self.path)
-        # print(f'PATH:{path}')
-        print(f'MIN COST:{node_to_open.cost}')
-        # 绘制路径的函数
+
+        if self.reached:
+            path = []
+            # 对路径进行溯源
+            path.append(result.get_pos())
+            path_iterator = PathIterator(result)
+            for pos in path_iterator:
+                path.append(pos)
+    
+            self.path = path
+            self.obstacles += self.path
+            print(self.path)
+            # print(f'PATH:{path}')
+            print(f'MIN COST:{node_to_open.cost}')
+            # 绘制路径的函数
         
     def get_path(self):
         result = []
@@ -76,10 +77,24 @@ class PathNode:
             result += item
         return result
 
+    def cal_path(self, leaf):
+        result = []
+        results = []
+        temp_node = leaf
+        while(temp_node.parent != None):
+            results.append(temp_node.path)
+            temp_node = temp_node.parent
+        for item in results:
+            result += item
+        return result
+
     def cal_shortest_path(self):
         leafs = self.get_all_leaf()
         paths_len = []
+        count = 0
         for leaf in leafs:
+            count += 1
+            print(str(count) + str(self.cal_path(leaf)))
             length = 0
             temp = leaf
             while(temp.parent != None):
@@ -108,6 +123,7 @@ class PathNode:
         temps = np.where(np.absolute(vals) == self.slope_val)
         slope_pts = np.flip(np.transpose(temps), axis = 1)
 
+        count = 0
         for slope_pt in slope_pts.tolist():
             if (slope_pt[0], slope_pt[1]) in self.obstacles:
                 continue
@@ -118,13 +134,23 @@ class PathNode:
 
             if (stop.x, stop.y) in self.obstacles:
                 continue
+            count += 1
             print(stop.x, stop.y, stop.z)
             self.children.append(PathNode(self.slope_val, self.map, self.source, stop, self.target, parent = self, isStepping=True, obstacles = list(self.obstacles)))
-        
+        print("slope ok for " + str(count))
+
+        dels = []
         for child in self.children:
             child.search()
-            if child.destination != child.target:
-                child.expand()
+            if child.reached:
+                if child.destination != child.target:
+                    child.expand()
+            else:
+                dels.append(child)
+        for del_child in dels:
+            self.children.remove(del_child)
+    
+
             
 
     def calc_cost(self, pos, new_pos):
