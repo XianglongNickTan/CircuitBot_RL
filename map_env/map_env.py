@@ -65,7 +65,7 @@ class MapEnv(Env):
                  use_gui=True,
                  workspace_width=56,
                  workspace_height=80,
-                 y_offset=10
+                 plate_offset=10
                  ):
 
         ### pybullet setting ###
@@ -77,22 +77,35 @@ class MapEnv(Env):
         self.p = PhysClientWrapper(p, physics_client)
         self.p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        self.y_offset = y_offset
-        self.row = map_row
-        self.column = map_column
+        self.p.setGravity(0, 0, -10)
 
+
+        ### map settings ###
         ### x - row - height
         ### y - colomn - width
-
+        self.plate_offset = plate_offset
+        self.row = map_row
+        self.column = map_column
 
         self.workspace_width = workspace_width
         self.workspace_height = workspace_height
 
-        self.path_length = 0
 
-        self.success = False
+        ### training settings ###
+        self.numSteps = 0
+        self.n_substeps = n_substeps
+        self.doneAfter = done_after
+
+        self.action_space = spaces.Box(
+            low=np.array([0, 0, 0, 0]),
+            high=np.array([self.row - 1, self.column - 1, self.row - 1, self.column - 1]),
+            dtype=np.int)
+
+        self.observation_space = spaces.Box(
+            -np.inf, np.inf, shape=(self.row, self.column), dtype='float32')
 
 
+        ### sim camera settings ###
         self.light = {
             "diffuse": 0.4,
             "ambient": 0.5,
@@ -100,48 +113,35 @@ class MapEnv(Env):
             "dir": [10, 10, 100],
             "col": [1, 1, 1]}
 
-        camera_center = (self.workspace_height / 2 + self.y_offset) / 100
+        camera_center = (self.workspace_height / 2 + self.plate_offset) / 100
         camera_height = 2
-
         self.viewMatrix = p.computeViewMatrix([camera_center, 0, camera_height], [camera_center, 0, -camera_height], [1, 0, 0])
-        # self.viewMatrix = p.computeViewMatrix([0, camera_center, camera_height], [0, camera_center, -camera_height], [0, 1, 0])
-
         self.nearVal = 0.01
         self.farVal = camera_height
-
         fov = math.atan((self.workspace_height / 200) / camera_height)
         fov = fov * 180 / math.pi * 2
-        print("-------------------")
-        print(fov)
-
         self.projMatrix = p.computeProjectionMatrixFOV(
             fov=fov, aspect=1, nearVal=self.nearVal, farVal=self.farVal)
-
-        self.objects = []
 
 
         ### initilize map ###
         self.init_sim()
 
+
+        ### robot pick place settings ###
+        self.pick_threshold = 0.005
+        self.objects = []
+
+
+        ### init path planning ###
+        self.analyzer = Analyzer()
+
+
+        self.path_length = 0
+
+        self.success = False
         self.is_done = False
 
-        self.action_space = spaces.Box(
-            low=np.array([0, 0, 0, 0]),
-            high=np.array([self.row - 1, self.column - 1, self.row - 1, self.column - 1]),
-            dtype=np.int)
-
-
-        self.observation_space = spaces.Box(
-            -np.inf, np.inf, shape=(self.row, self.column), dtype='float32')
-
-
-
-        self.pick_threshold = 0.005
-
-        self.p.setGravity(0, 0, -10)
-
-
-        self.analyzer = Analyzer()
 
 
     def _get_sim_image(self):
@@ -178,15 +178,14 @@ class MapEnv(Env):
 
         rgb_d = np.dstack((rgb_map, depth_map))
 
-
         return rgb_map, depth_map, rgb_d
 
 
     def _get_weight_map(self):
-        rgb_map, depth_map, _ = self._get_sim_image()
+        _, depth_map, _ = self._get_sim_image()
 
-        depth_map *= 100
-        depth_map -= 1
+        depth_map *= 100    ### convert to cm
+        depth_map -= 1      ### minus plate height
 
         x, y = depth_map.shape[0:2]
 
@@ -219,21 +218,9 @@ class MapEnv(Env):
 
 
 
-
-
-
     def init_sim(self):
 
         # planeId = self.p.loadURDF("plane.urdf")
-
-        ##### create bottom plate ######
-        # self._create_obj(self.p.GEOM_BOX,
-        #                 mass=-1,
-        #                 halfExtents=[self.workspace_width/200, self.workspace_height/200, 0.005],
-        #                 rgbaColor=[1, 0, 1, 1],
-        #                 basePosition=[0, self.workspace_height/200+0.1, 0.005],
-        #                 baseOrientation=[0, 0, 0, 1]
-        #                 )
 
         self._create_obj(self.p.GEOM_BOX,
                         mass=-1,
@@ -281,29 +268,29 @@ class MapEnv(Env):
         # self.wall.append(wall3)
         # self.wall.append(wall4)
 
-        object_1 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_cuboid2,
-                        rgbaColor=[1, 1, 1, 1],
-                        basePosition=[0.5, 0.08, 0.05],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-                        )
+        # object_1 = self._create_obj(self.p.GEOM_MESH,
+        #                 mass=0.01,
+        #                 use_file=obj_cuboid2,
+        #                 rgbaColor=[1, 1, 1, 1],
+        #                 basePosition=[0.5, 0.1, 0.05],
+        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+        #                 )
 
 
-        object_1 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_cuboid2,
-                        rgbaColor=[1, 1, 1, 1],
-                        basePosition=[0.5, -0.08, 0.05],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-                        )
+        # object_1 = self._create_obj(self.p.GEOM_MESH,
+        #                 mass=0.01,
+        #                 use_file=obj_cuboid2,
+        #                 rgbaColor=[1, 1, 1, 1],
+        #                 basePosition=[0.5, -0.1, 0.05],
+        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+        #                 )
 
         object_1 = self._create_obj(self.p.GEOM_MESH,
                         mass=0.01,
                         use_file=obj_triangular_prism,
                         rgbaColor=[1, 1, 1, 1],
-                        basePosition=[0.7, 0, 0.05],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+                        basePosition=[0.5, 0, 0.05],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
                         )
 
         self.objects.append(object_1)
@@ -324,16 +311,16 @@ class MapEnv(Env):
         return False
 
 
-
     def cal_show_path(self):
         weight_map = self._get_weight_map()
         self.analyzer.updateMap(weight_map)
 
-        self.analyzer.update_pole_pair(0,[42,5],[36,40])
-        self.analyzer.update_pole_pair(1,[25,5],[25,45])
+        self.analyzer.update_pole_pair(0,[50,5],[36,70])
+        self.analyzer.update_pole_pair(1,[28,5],[25,75])
 
         self.analyzer.search()
         self.analyzer.draw_map_3D()
+
 
     def show_map(self):
         # rgb_map, depth_map, _ = self.get_sim_image()
@@ -345,45 +332,6 @@ class MapEnv(Env):
 
     def _action_from_pixel_to_coordinate(self, action):
         pass
-
-
-    def _apply_action(self, action):
-        """ apply action to update the map.
-            action = array([x1, y1, x2, y2])
-            x height
-            y width
-        """
-
-        # action = np.clip(action, [7, 24, 7, 24], [48, 72, 48, 72])
-
-
-        pick_point = [action[0], action[1]]
-        place_point = [action[2], action[3]]
-
-        move_object = self._compare_object_base(pick_point)
-
-        #### orin #####
-        # orin = action[4]
-
-
-        if move_object:
-            base, orin = self.p.getBasePositionAndOrientation(move_object)
-
-
-
-
-
-            ###### z value needs to be edited based on height map ########
-            place_point = [action[2], action[3], 0.1]
-
-            self.p.resetBasePositionAndOrientation(move_object,
-                                                   place_point,
-                                                   orin)
-
-
-
-        return self.is_done
-
 
 
     def _compare_object_base(self, pick_pos):
@@ -407,25 +355,73 @@ class MapEnv(Env):
         return move_object
 
 
+    def _apply_action(self, action):
+        """ apply action to update the map."""
+
+        # action = np.clip(action, [7, 24, 7, 24], [48, 72, 48, 72])
+
+
+        pick_point = [action[0], action[1]]
+        place_point = [action[2], action[3]]
+
+        move_object = self._compare_object_base(pick_point)
+
+        #### orin #####
+        # orin = action[4]
+
+
+        if move_object:
+            base, orin = self.p.getBasePositionAndOrientation(move_object)
+
+
+            ###### z value needs to be edited based on height map ########
+            place_point = [action[2], action[3], 0.1]
+
+            self.p.resetBasePositionAndOrientation(move_object,
+                                                   place_point,
+                                                   orin)
+
+        else:
+            pass
 
 
 
-
-
-
-
-    def get_obs(self):
+    def _get_obs(self):
         rgb_map, depth_map, rgb_d = self._get_sim_image()
 
-        return obs
+        return rgb_d
 
 
+    def _get_reward(self):
+        pass
+
+
+    def _is_success(self):
+        pass
 
 
     def step(self, action):
         """ Execute one time step within the environment."""
-        pass
 
+        if self.numSteps == 0:
+            self.startTime = time.time()
+
+        self._apply_action(action)
+
+        for i in range(self.n_substeps):
+            self.p.stepSimulation()
+
+        self.numSteps += 1
+
+        current_obs = self._get_obs()
+
+        info = {}
+        reward = self._get_reward()
+        done = self._is_success(reward) or self.numSteps > self.doneAfter
+        if done:
+            info = {"episode": {"l": self.numSteps, "r": reward}}
+
+        return current_obs, reward, done, info
 
     def render(self, mode="human"):
         pass
@@ -441,17 +437,17 @@ place_y = p.addUserDebugParameter("place",0,1,0)
 
 # add_test_obj()
 
-for i in range(10):
+for i in range(1000000):
 
     y_1 = p.readUserDebugParameter(pick_y)
     y_2 = p.readUserDebugParameter(place_y)
 
-    action = [0,y_1, 0, y_2]
-    my_map._apply_action(action)
+    # action = [0,y_1, 0, y_2]
+    # my_map._apply_action(action)
 
     p.stepSimulation()
     time.sleep(1./240.)
     my_map.show_map()
 
-my_map.cal_show_path()
+# my_map.cal_show_path()
 
