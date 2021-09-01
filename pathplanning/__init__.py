@@ -1,8 +1,10 @@
-from analyzer import Analyzer
-from map import Map
 import numpy as np
 import time
+
+from pathanalyzer import PathAnalyzer
+from map import Map
 from maps.bigmap import bigmap
+from maps.bigmap import bigmap2
 
 def map1():
     return np.array(
@@ -46,21 +48,23 @@ def map2():
         [0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
         [0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
         [0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
-        [0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     ])
 
 
-analyzer = Analyzer()
+analyzer = PathAnalyzer()
 array = map2()
-analyzer.updateMap(bigmap())
-analyzer.update_pole_pair(0,[5,42],[40,36])
-analyzer.update_pole_pair(1,[5,25],[42,25])
+analyzer.set_map(bigmap2())
+analyzer.set_pathplan(0,[5,42],[40,36])
+analyzer.set_pathplan(1,[5,25],[42,25])
+# analyzer.set_pathplan(0,[2,15],[22,15])
+# analyzer.set_pathplan(1,[2,5],[24,3])
 t1 = time.time()
 analyzer.search()
 t2 = time.time() - t1
-print("path 1:" + str(analyzer.paths[0]))
-print("path 2:" + str(analyzer.paths[1]))
+print("path 1:" + str(analyzer.path_planners[0].path))
+print("path 2:" + str(analyzer.path_planners[1].path))
 print(t2)
 analyzer.draw_map_3D()
 

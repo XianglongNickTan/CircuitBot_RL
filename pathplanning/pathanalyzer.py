@@ -1,42 +1,36 @@
 import numpy as np
-from map import Map
-from pathplanner import PathPlanner
+
 from matplotlib import pyplot as plt
 from matplotlib.colors import LightSource
 from matplotlib import cm
 
-class Analyzer:
+from map import Map
+from pathplanner import PathPlanner
+
+class PathAnalyzer:
     def __init__(self):
         self.map = Map()
-        self.planners = [PathPlanner(), PathPlanner()]
-        self.pole_pairs = [[],[]]
-        self.paths = [[],[]]
+        self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.slope_val = 0.5
     
-    def updateMap(self, array):
+    def set_map(self, array):
         self.map.read_fromNdArray(array)
 
-    def update_slope_value(self, val):
+    def set_slope_value(self, val):
         self.slope_val = val
 
-    def update_pole_pair(self, pair_no = 0, source = [0,0], target = [0,0]):
-        self.pole_pairs[pair_no] = [self.map.get_coordination(source[0], source[1]), self.map.get_coordination(target[0], target[1])]
+    def set_pathplan(self, pair_no, departure, destination):
+        self.path_planners[pair_no].set_pathplan(self.map.get_coordination(departure[0], departure[1]), self.map.get_coordination(destination[0], destination[1]))
 
     def search(self):
-        self.planners[0].update(self.slope_val, self.map, self.pole_pairs[0][0], self.pole_pairs[0][1])
-        self.paths[0] = self.planners[0].search()
+        success1 = self.path_planners[0].search()
 
-        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
-        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
-        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
-        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
-        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
-        print("pathhhhhhhhhhhhhhhhhhhhhhhhhh2")
+        self.path_planners[1].set_obstacles(self.path_planners[0].path)
+        print(self.path_planners[1].obstacles)
+        
+        success2 = self.path_planners[1].search()
 
-        self.planners[1].update(self.slope_val, self.map, self.pole_pairs[1][0], self.pole_pairs[1][1], self.paths[0])
-        self.paths[1] = self.planners[1].search()
-
-     # 绘制地图以及路径
+         # 绘制地图以及路径
     def draw_map(self, path, pole_pair):
         print("Drawing map...")
         x = np.arange(0, self.map.width, 1)
@@ -82,16 +76,16 @@ class Analyzer:
         ax.set_zlim(0,4)
 
          # 绘制三维路线图
-        pathT = np.transpose(self.paths[0])  # [[1,2],[1,2],[1,2]...]
+        pathT = np.transpose(self.path_planners[0].path)  # [[1,2],[1,2],[1,2]...]
         Xp = pathT[0] #[[1,1,1,1,1], [2,2,2,2]...]
         Yp = pathT[1]
-        Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.paths[0]]
+        Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.path_planners[0].path]
         ax.scatter(Xp,Yp,Zp,c='g',s=200)
 
-        pathT2 = np.transpose(self.paths[1])
+        pathT2 = np.transpose(self.path_planners[1].path)
         Xp2 = pathT2[0]
         Yp2 = pathT2[1]
-        Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.paths[1]]
+        Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.path_planners[1].path]
         ax.scatter(Xp2,Yp2,Zp2,c='b',s=200)
 
         slope_pts = np.transpose(np.where(np.absolute(self.map.dem_map - 0) == self.slope_val))
