@@ -26,7 +26,7 @@ class Jaco:
         self.armId = self.p.loadURDF(
             urdf,
             basePosition=spawn_pos,
-            baseOrientation=self.p.getQuaternionFromEuler([0, 0, -math.pi / 2]),
+            baseOrientation=self.p.getQuaternionFromEuler([0, 0, -math.pi]),
             useFixedBase=1)
             # flags=self.p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
 
@@ -41,9 +41,10 @@ class Jaco:
         assert self.numJoints
         self.jointVelocities = [0] * self.numJoints
 
+
         ## grip control ##
-        self.gripperOpen = 0.5
-        self.gripperClose = 1.3
+        self.gripperOpen = 0.6
+        self.gripperClose = 1.1
 
         self.cur_FingerAngle = [
             self.p.getJointState(self.armId, i)[0] for i in [7, 9]
@@ -51,8 +52,11 @@ class Jaco:
 
         self.gripperConstraints = []
 
+        self.lift_pos = [0.5, 0, 0.4]
+        self.rest_pos = [0.12, 0, 0.4]
+
         ## goal variables ##
-        self.goalOrientation = [0, -math.pi, math.pi / 3]
+        self.goalOrientation = [0, -math.pi, -2.95]
 
         # self.goalOrientation = [0, -math.pi, -math.pi / 2]
 
@@ -98,17 +102,9 @@ class Jaco:
             map(lambda i: joint_information[i][9] - joint_information[i][8],
                 range(7)))
 
-        self.IKInfo["restPoses"] = list(
-            map(math.radians, [
-                0, 0, 0, 0, 0,
-                0
-            ]))
-
-        # self.IKInfo["restPoses"] = list(
-        #     map(math.radians, [
-        #         250, 193.235290527, 52.0588226318, 348.0, -314.522735596,
-        #         238.5, 0.0, 0
-        #     ]))
+        self.IKInfo["restPoses"] = [-5.4145502245428645, -0.6333213690277324, -2.045467634482174,
+                                    -2.397664040202188, -2.14626672103873, -1.229977179770692,
+                                    0.0, 0.50246355549204, 0.0, 0.5026350523328063]
 
         self.IKInfo["solver"] = 0
         self.IKInfo["jointDamping"] = [0.005] * self.numJoints
@@ -117,7 +113,15 @@ class Jaco:
     def get_endEffector_pos(self):
         grip_pos = np.array(
             self.p.getLinkState(self.armId, 6, computeLinkVelocity=1)[0])
-        return grip_pos
+        grip_orin = np.array(
+            self.p.getLinkState(self.armId, 6, computeLinkVelocity=1)[1])
+
+        return grip_pos, grip_orin
+
+    def get_joint_poses(self):
+        """ Returns current joint poses."""
+        return [self.p.getJointState(self.armId, i)[0] for i in range(10)]
+
 
     def compute_ik_poses(self):
         """ Use the IK solver to compute goal joint poses to achieve IK goal."""
@@ -178,14 +182,16 @@ class Jaco:
 
     ############ grasp control ##########
 
-    def gripper_control(self, state):
+    def gripper_control(self, angle):
         """Control the open or close of the gripper
             state == true : open   otherwise: close"""
 
-        if state:
-            finger_angle = self.gripperOpen
-        else:
-            finger_angle = self.gripperClose
+        # if state:
+        #     finger_angle = self.gripperOpen
+        # else:
+        #     finger_angle = self.gripperClose
+
+        finger_angle = angle
 
         self.p.setJointMotorControl2(
             bodyIndex=self.armId,
@@ -234,11 +240,12 @@ class Jaco:
                 parentLinkIndex=6,
                 childBodyUniqueId=object_id,
                 childLinkIndex=-1,
-                parentFramePosition=[-0.03, 0, 0.03],
+                parentFramePosition=[-0.03, 0, 0.047],
                 childFramePosition=[0, 0, 0],
                 jointAxis=[1, 1, 1],
                 jointType=self.p.JOINT_FIXED,
-                parentFrameOrientation=self.p.getQuaternionFromEuler([0, 0, -math.pi / 2.35])
+                # parentFrameOrientation=self.p.getQuaternionFromEuler(),
+                childFrameOrientation = self.p.getQuaternionFromEuler([0, -math.pi, -2.95])
             ))
 
 
@@ -249,6 +256,8 @@ class Jaco:
             self.p.removeConstraint(constraint)
         self.gripperConstraints = []
 
+
+
     ############ ik move ############
     def move_to(self, pos, ori):
         self.goalPosition = pos
@@ -257,16 +266,18 @@ class Jaco:
         self.step_simulation()
 
     def pick(self):
-        self.gripper_control(False)
+        self.gripper_control(self.gripperClose)
         # self.step_simulation()
-        for _ in range(20):
+        for _ in range(50):
             self.p.stepSimulation()
+            time.sleep(1. / 240.)     # set time interval for visulaization
 
     def place(self):
-        self.gripper_control(True)
+        self.gripper_control(self.gripperOpen)
         # self.step_simulation()
-        for _ in range(20):
+        for _ in range(50):
             self.p.stepSimulation()
+            time.sleep(1. / 240.)     # set time interval for visulaization
 
 
 
@@ -276,13 +287,17 @@ class Jaco:
         """ Circuit path print, move arm horizontally, display trajectory"""
         pass
 
-    def pick_place_object(self, init_pos, init_ori, end_pos, end_ori):
-        """ pick and place object"""
 
+    def pick_place_object(self, object, init_pos, init_ori, end_pos, end_ori):
+        """ pick and place object"""
         self.move_to(init_pos, init_ori)
         self.pick()
+        self.create_gripper_constraints(object)
+        self.move_to(self.lift_pos, self.goalOrientation)
         self.move_to(end_pos, end_ori)
         self.place()
+        self.remove_gripper_constraints()
+        self.move_to(self.rest_pos, self.goalOrientation)
 
 
 

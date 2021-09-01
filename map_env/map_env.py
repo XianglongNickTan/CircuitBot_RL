@@ -12,6 +12,8 @@ import math
 from pathplanning.map import Map
 from pathplanning.analyzer import Analyzer
 
+from robot_env.jaco import Jaco
+
 
 sys.path.insert(1, "../bullet3/build_cmake/examples/pybullet")
 timeStep = 1 / 240.0
@@ -124,13 +126,23 @@ class MapEnv(Env):
             fov=fov, aspect=1, nearVal=self.nearVal, farVal=self.farVal)
 
 
-        ### initilize map ###
-        self.init_sim()
+
 
 
         ### robot pick place settings ###
         self.pick_threshold = 0.005
         self.objects = []
+        self.reach_x = [0.30, 0.68]
+        self.reach_y = [-0.2, 0.2]
+        self.reach_z = [0.06, 0.4]
+
+
+
+        ### init map ###
+        self.init_sim()
+
+        ### init jaco ###
+        self.arm = Jaco(self.p)
 
 
         ### init path planning ###
@@ -142,6 +154,14 @@ class MapEnv(Env):
         self.success = False
         self.is_done = False
 
+
+    def _move_to(self, pos, ori):
+
+        # ori = self.p.getQuaternionFromEuler(ori)
+
+        self.arm.move_to(pos, ori)
+
+        print(self.arm.get_endEffector_pos())
 
 
     def _get_sim_image(self):
@@ -156,11 +176,6 @@ class MapEnv(Env):
             self.viewMatrix,
             self.projMatrix,
             shadow=0)
-            # lightAmbientCoeff=self.light["ambient"],
-            # lightDiffuseCoeff=self.light["diffuse"],
-            # lightSpecularCoeff=self.light["spec"],
-            # lightDirection=self.light["dir"],
-            # lightColor=self.light["col"])
 
         rgb = np.array(img[2], dtype=np.float).reshape(height, width, 4) / 255
         rgb[:, :, 3], rgb[:, :, 2] = rgb[:, :, 2], rgb[:, :, 0]
@@ -217,7 +232,6 @@ class MapEnv(Env):
         return objID
 
 
-
     def init_sim(self):
 
         # planeId = self.p.loadURDF("plane.urdf")
@@ -225,7 +239,7 @@ class MapEnv(Env):
         self._create_obj(self.p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.workspace_height/200, self.workspace_width/200, 0.005],
-                        rgbaColor=[1, 0, 1, 1],
+                        rgbaColor=[0, 1, 1, 1],
                         basePosition=[self.workspace_height/200+0.1, 0, 0.005],
                         baseOrientation=[0, 0, 0, 1]
                         )
@@ -277,21 +291,21 @@ class MapEnv(Env):
         #                 )
 
 
-        # object_1 = self._create_obj(self.p.GEOM_MESH,
-        #                 mass=0.01,
-        #                 use_file=obj_cuboid2,
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[0.5, -0.1, 0.05],
-        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-        #                 )
-
         object_1 = self._create_obj(self.p.GEOM_MESH,
                         mass=0.01,
-                        use_file=obj_triangular_prism,
+                        use_file=obj_cuboid2,
                         rgbaColor=[1, 1, 1, 1],
                         basePosition=[0.5, 0, 0.05],
                         baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
                         )
+
+        # object_1 = self._create_obj(self.p.GEOM_MESH,
+        #                 mass=0.01,
+        #                 use_file=obj_triangular_prism,
+        #                 rgbaColor=[1, 1, 1, 1],
+        #                 basePosition=[0.5, 0, 0.05],
+        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
+        #                 )
 
         self.objects.append(object_1)
 
@@ -336,7 +350,6 @@ class MapEnv(Env):
 
     def _compare_object_base(self, pick_pos):
         move_object = None
-
         max_z = 0
 
         for object in self.objects:
@@ -431,23 +444,75 @@ class MapEnv(Env):
 ###### test map class #####
 my_map = MapEnv()
 
-pick_y = p.addUserDebugParameter("pick",0,1,0)
-place_y = p.addUserDebugParameter("place",0,1,0)
+
+pick_x = p.addUserDebugParameter("x",-1,1,0.5)
+pick_y = p.addUserDebugParameter("y",-1,1,0)
+pick_z = p.addUserDebugParameter("z",0,1,0.5)
+pick_orin = p.addUserDebugParameter("o", -3.14,3.14,-2.942)
+pick_angle = p.addUserDebugParameter("a", 0,2,0)
+
+pick_lift = p.addUserDebugParameter("l", 0,2,0)
+
+pick_con = p.addUserDebugParameter("c", 0, 1, 0)
 
 
-# add_test_obj()
 
-for i in range(1000000):
+x = p.readUserDebugParameter(pick_x)
+y = p.readUserDebugParameter(pick_y)
+z = p.readUserDebugParameter(pick_z)
+o = p.readUserDebugParameter(pick_orin)
+angle = p.readUserDebugParameter(pick_angle)
+lift = p.readUserDebugParameter(pick_lift)
 
-    y_1 = p.readUserDebugParameter(pick_y)
-    y_2 = p.readUserDebugParameter(place_y)
 
-    # action = [0,y_1, 0, y_2]
-    # my_map._apply_action(action)
+a = [0.5, 0, 0.06]
+ori = [0, -math.pi, -2.95]
+b = [0.65, 0 , 0.06]
 
+my_map.arm.pick_place_object(my_map.objects[0], a, ori, b, ori)
+my_map.show_map()
+
+for i in range(10):
     p.stepSimulation()
     time.sleep(1./240.)
     my_map.show_map()
+
+# add_test_obj()
+#
+# for i in range(1000000):
+#
+#     x = p.readUserDebugParameter(pick_x)
+#     y = p.readUserDebugParameter(pick_y)
+#     z = p.readUserDebugParameter(pick_z)
+#     o = p.readUserDebugParameter(pick_orin)
+#     angle = p.readUserDebugParameter(pick_angle)
+#     lift = p.readUserDebugParameter(pick_lift)
+#
+#     con = p.readUserDebugParameter(pick_con)
+#
+#     orin = [0, -math.pi, o]
+#
+#     if lift == 0:
+#         my_map._move_to(my_map.lift_pos, orin)
+#
+#     else:
+#         pos = [x, y, z]
+#         my_map._move_to(pos, orin)
+#
+#     if con == 1:
+#         my_map.arm.create_gripper_constraints(my_map.objects[0])
+#
+#     else:
+#         my_map.arm.remove_gripper_constraints()
+#
+#
+#
+#     my_map.arm.gripper_control(angle)
+#
+#     p.stepSimulation()
+#     time.sleep(1./240.)
+#     my_map.show_map()
+
 
 # my_map.cal_show_path()
 

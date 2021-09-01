@@ -4,6 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/map_env" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/map_env/pathplanning" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/robot_env" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
