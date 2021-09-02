@@ -7,10 +7,12 @@ from matplotlib import cm
 from map import Map
 from pathplanner import PathPlanner
 
+
 class PathAnalyzer:
     def __init__(self):
         self.map = Map()
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
+        self.result = [PathResult(), PathResult()]
         self.slope_val = 0.5
     
     def set_map(self, array):
@@ -25,10 +27,25 @@ class PathAnalyzer:
     def search(self):
         success1 = self.path_planners[0].search()
 
-        self.path_planners[1].set_obstacles(self.path_planners[0].path)
-        print(self.path_planners[1].obstacles)
+        if success1:
+            self.path_planners[1].set_obstacles(self.path_planners[0].path)            
+            success2 = self.path_planners[1].search()
+            if success2:
+                self.result[0] = PathResult(True, self.path_planners[0].path, self.path_planners[0].cost)
+                self.result[1] = PathResult(True, self.path_planners[1].path, self.path_planners[1].cost)
+            else:
+                self.result[0] = PathResult(True, self.path_planners[0].path, self.path_planners[0].cost)
+                self.result[1] = PathResult(False, [], -1)
+
+        else:
+            self.result[0] = PathResult(False, [], -1)
+            self.result[1] = PathResult(False, [], -1)
         
-        success2 = self.path_planners[1].search()
+        print(self.result[0])
+        print(self.result[1])
+    
+    def get_result(self, no):
+        return self.result[no].success, self.result[no].path, self.result[no].cost
 
          # 绘制地图以及路径
     def draw_map(self, path, pole_pair):
@@ -96,3 +113,13 @@ class PathAnalyzer:
 
         ax.scatter(Xp3,Yp3,Zp3,c='r',s=800)
         plt.show()
+
+
+class PathResult():
+    def __init__(self, success = False, path = [], cost = -1):
+        self.success = success
+        self.path = path
+        self.cost = cost
+
+    def __str__(self):
+        return str(self.success) + str(self.path) + str(self.cost)

@@ -14,10 +14,13 @@ class PathPlanner:
         self.departure = None
         self.destination = None
 
+        self.cost = 0
+
         self.open_list = None
         self.close_list = None
         self.node_searched = 0
 
+        self.reached = False
         self.obstacles = []
         self.result_path = []
 
@@ -55,21 +58,23 @@ class PathPlanner:
         if self.reached:
             resultNodes = []
             path = []
+            total_cost = 0
             # 对路径进行溯源
             resultNodes.append(result.get_pos())
             self.resultnode = result
             path += result.path
+            total_cost += result.cost
             path_iterator = PathIterator(result)
             for pos, cost, _path in path_iterator:
                 resultNodes.append(pos)
                 path += _path
+                total_cost += cost
     
             self.path = path
+            self.cost = total_cost
             self.pathnodes = resultNodes
             
             return True
-
-            # 绘制路径的函数
         else:
             return False
         self.node_searched = 0
@@ -182,5 +187,7 @@ class PathPlanner:
         pred = math.sqrt(horizon_dist ** 2 + height_dist ** 2)
         # print(f'CALC PRED. Pos({location[0]},{location[1]}),pred = {pred:.2f}')
         return pred
+    
+
 
 
