@@ -121,8 +121,8 @@ class MapEnv(Env):
 
         ### action = [x, y, x, y, ori] ###
         self.action_space = spaces.Box(
-            low=np.array([22, 8, 22, 8, 0]),
-            high=np.array([58, 47, 58, 47, 1]),
+            low=np.array([22*self.pixel_ratio, 8*self.pixel_ratio, 22*self.pixel_ratio, 8*self.pixel_ratio, 0]) ,
+            high=np.array([58*self.pixel_ratio, 47*self.pixel_ratio, 58*self.pixel_ratio, 47*self.pixel_ratio, 1]),
             dtype=np.int)
 
         self.observation_space = spaces.Box(
@@ -147,23 +147,6 @@ class MapEnv(Env):
         self.projMatrix = p.computeProjectionMatrixFOV(
             fov=fov, aspect=1, nearVal=self.nearVal, farVal=self.farVal)
 
-
-
-        ### init map ###
-        self.init_sim()
-        self.weight_map = None
-
-
-        ### init jaco ###
-        self.arm = Jaco(self.p)
-
-        ### init path planning ###
-        self.analyzer = PathAnalyzer()
-        self.path_length = 0
-        self._update_weight_map()
-        self.analyzer.set_map(self.weight_map)
-        self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
-        self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
 
 
     def _get_sim_image(self):
@@ -451,7 +434,6 @@ class MapEnv(Env):
             self._create_obj(self.p.GEOM_BOX,
                              mass=-1,
                              halfExtents=[0.005, 0.005, 0.0001],
-                             # rgbaColor=[0.93, 0.77, 0.56, 1],
                              rgbaColor=[0, 0, 0, 1],
                              basePosition=[center[0], center[1], center_z + 0.01],
                              baseOrientation=[0, 0, 0, 1]
@@ -467,13 +449,16 @@ class MapEnv(Env):
         pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
         place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
 
+        print("-----------")
+        print(pick_xy)
+
         if raw_action[4] == 0:
             place_orin = [0, -math.pi, 0]
         else:
             place_orin = [0, -math.pi, math.pi / 2]
 
-        pick_background_height = self.weight_map[int(raw_action[0]), int(raw_action[1])]
-        place_background_height = self.weight_map[int(raw_action[2]), int(raw_action[3])]
+        pick_background_height = self.weight_map[int(raw_action[0] / self.pixel_ratio), int(raw_action[1] / self.pixel_ratio)]
+        place_background_height = self.weight_map[int(raw_action[2] / self.pixel_ratio), int(raw_action[3] / self.pixel_ratio)]
 
         move_object = self._compare_object_base(pick_xy)
 
@@ -527,6 +512,22 @@ class MapEnv(Env):
 
 
     def reset(self):
+        ### init map ###
+        self.init_sim()
+        self.weight_map = None
+
+        ### init jaco ###
+        self.arm = Jaco(self.p)
+
+        ### init path planning ###
+        self.analyzer = PathAnalyzer()
+        self.path_length = 0
+        self._update_weight_map()
+        self.analyzer.set_map(self.weight_map)
+        self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
+        self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
+
+
         for _ in range(50):
             self.p.stepSimulation()
             # time.sleep(1. / 240.)  # set time interval for visulaization
