@@ -29,6 +29,12 @@ class PathAnalyzer:
     def add_obstacles(self, new_obstacles):
         self.path_planners[0].add_obstacles(new_obstacles)
 
+    def set_obstacles(self, new_obstacles):
+        self.path_planners[0].set_obstacles(new_obstacles)
+
+    def clear_obstacles(self, obstacles):
+        self.path_planners[0].clear_obstacles()
+
     def search(self):
         success1 = self.path_planners[0].search()
 
