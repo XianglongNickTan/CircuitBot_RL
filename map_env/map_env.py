@@ -96,31 +96,42 @@ class MapEnv(Env):
         self.reach_y = [-0.2, 0.2]
         self.reach_z = [0.06, 0.4]
 
-
-        ### print env settings ###
-        self.electrode_x_offset = 15   ### row in weight map
-        self.electrode_y_offset = 6
-        self.ele_x_n = (self.electrode_x_offset + self.plate_offset) / 100
-        self.ele_x_f = (self.workspace_height - self.electrode_x_offset + self.plate_offset) / 100
-        self.ele_y_l = self.electrode_y_offset / 100
-        self.ele_y_r = -self.electrode_y_offset / 100
-
-        self.ele_r_n = int(self.electrode_x_offset)
-        self.ele_r_f = int(self.workspace_height - self.electrode_x_offset)
-        self.ele_c_l = int(self.workspace_width / 2 - self.electrode_y_offset)
-        self.ele_c_r = int(self.workspace_width / 2 + self.electrode_y_offset)
-
         ### training settings ###
         self.numSteps = 0
         self.n_substeps = n_substeps
         self.doneAfter = done_after
-        self.pixel_ratio = 8    ### increase picture size by 2
+        self.pixel_ratio = 2        ### increase picture size by 2
+        self.weight_map_ratio = 1   ### 1:1 weight map
+
+        ### print env settings ###
+        self.electrode_x_offset = 15  ### row in weight map
+        self.electrode_y_offset = 6
+        # self.ele_x_n = (self.electrode_x_offset + self.plate_offset) / 100
+        # self.ele_x_f = (self.workspace_height - self.electrode_x_offset + self.plate_offset) / 100
+        # self.ele_y_l = self.electrode_y_offset / 100
+        # self.ele_y_r = -self.electrode_y_offset / 100
+        #
+        # self.ele_r_n = int(self.electrode_x_offset)
+        # self.ele_r_f = int(self.workspace_height - self.electrode_x_offset)
+        # self.ele_c_l = int(self.workspace_width / 2 - self.electrode_y_offset)
+        # self.ele_c_r = int(self.workspace_width / 2 + self.electrode_y_offset)
+
+        self.ele_r_n = int(self.workspace_height - self.electrode_x_offset)
+        self.ele_r_f = int(self.electrode_x_offset - 1)
+        self.ele_c_l = int(self.workspace_width / 2 + self.electrode_y_offset - 1)
+        self.ele_c_r = int(self.workspace_width / 2 - self.electrode_y_offset)
+
+        self.ele_n_l = self._from_pixel_to_coordinate([self.ele_r_n, self.ele_c_l], self.weight_map_ratio)
+        self.ele_n_r = self._from_pixel_to_coordinate([self.ele_r_n, self.ele_c_r], self.weight_map_ratio)
+        self.ele_f_l = self._from_pixel_to_coordinate([self.ele_r_f, self.ele_c_l], self.weight_map_ratio)
+        self.ele_f_r = self._from_pixel_to_coordinate([self.ele_r_f, self.ele_c_r], self.weight_map_ratio)
+
 
 
         ### action = [x, y, x, y, ori] ###
         self.action_space = spaces.Box(
             low=np.array([22, 8, 22, 8, 0]),
-            high=np.array([60, self.column - 1, self.row - 1, self.column - 1, 1]),
+            high=np.array([58, 47, 58, 47, 1]),
             dtype=np.int)
 
         self.observation_space = spaces.Box(
@@ -146,9 +157,11 @@ class MapEnv(Env):
             fov=fov, aspect=1, nearVal=self.nearVal, farVal=self.farVal)
 
 
+
         ### init map ###
         self.init_sim()
         self.weight_map = None
+
 
         ### init jaco ###
         self.arm = Jaco(self.p)
@@ -156,6 +169,10 @@ class MapEnv(Env):
         ### init path planning ###
         self.analyzer = PathAnalyzer()
         self.path_length = 0
+        self._update_weight_map()
+        self.analyzer.set_map(self.weight_map)
+        self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
+        self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
 
 
     def _get_sim_image(self):
@@ -256,7 +273,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
-                        basePosition=[self.ele_x_n, self.ele_y_l, 0.01],
+                        basePosition=[self.ele_n_l[0], self.ele_n_l[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -264,7 +281,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
-                        basePosition=[(self.ele_x_n + 0.1) / 2, self.ele_y_l, 0.01],
+                        basePosition=[(self.ele_n_l[0] + 0.1) / 2, self.ele_n_l[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -272,7 +289,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
-                        basePosition=[self.ele_x_n, self.ele_y_r, 0.01],
+                        basePosition=[self.ele_n_r[0], self.ele_n_r[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -280,7 +297,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
-                        basePosition=[(self.ele_x_n + 0.1) / 2, self.ele_y_r, 0.01],
+                        basePosition=[(self.ele_n_r[0] + 0.1) / 2, self.ele_n_r[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -290,7 +307,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
-                        basePosition=[self.ele_x_f, self.ele_y_l, 0.01],
+                        basePosition=[self.ele_f_l[0], self.ele_f_l[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -299,7 +316,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
-                        basePosition=[self.ele_x_f + self.electrode_x_offset / 200, self.ele_y_l, 0.01],
+                        basePosition=[self.ele_f_l[0] + self.electrode_x_offset / 200, self.ele_f_l[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -307,7 +324,7 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
-                        basePosition=[self.ele_x_f, self.ele_y_r, 0.01],
+                        basePosition=[self.ele_f_r[0], self.ele_f_r[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
@@ -316,32 +333,41 @@ class MapEnv(Env):
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
-                        basePosition=[self.ele_x_f + self.electrode_x_offset / 200, self.ele_y_r, 0.01],
+                        basePosition=[self.ele_f_r[0] + self.electrode_x_offset / 200, self.ele_f_r[1], 0.01],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
 
-    def add_object(self):
+    def _add_object(self):
 
         object_1 = self._create_obj(self.p.GEOM_MESH,
                         mass=0.01,
-                        use_file=obj_cuboid2,
+                        use_file=obj_triangular_prism,
                         rgbaColor=[1, 0, 1, 1],
-                        basePosition=[0.4, 0, 0.03],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+                        basePosition=[0.5, 0.06, 0.03],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
                         )
 
-        object_2 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_cuboid2,
-                        rgbaColor=[1, 0, 1, 1],
-                        basePosition=[0.6, 0, 0.03],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-                        )
+        # object_2 = self._create_obj(self.p.GEOM_MESH,
+        #                 mass=0.01,
+        #                 use_file=obj_cuboid2,
+        #                 rgbaColor=[1, 0, 1, 1],
+        #                 basePosition=[0.6, 0, 0.03],
+        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+        #                 )
+
+        # object_2 = self._create_obj(self.p.GEOM_MESH,
+        #                 mass=0.01,
+        #                 use_file=obj_cuboid2,
+        #                 rgbaColor=[1, 0, 1, 1],
+        #                 basePosition=[0.6, 0, 0.03],
+        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+        #                 )
+
 
 
         self.objects.append(object_1)
-        self.objects.append(object_2)
+        # self.objects.append(object_2)
 
     def _check_if_out_workspace(self, object, wall):
         P_min, P_max = self.p.getAABB(object)
@@ -362,9 +388,6 @@ class MapEnv(Env):
         self._update_weight_map()
         self.analyzer.set_map(self.weight_map)
 
-        self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
-        self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
-
         self.analyzer.search()
         self.analyzer.draw_map_3D()
 
@@ -378,15 +401,43 @@ class MapEnv(Env):
         cv2.waitKey(1)
 
 
-    def _from_pixel_to_coordinate(self, x_y):
+    def _from_pixel_to_coordinate(self, x_y, ratio):
+        """ ratio: 1 = 1:1 cm  2 = 1:0.5cm """
+        real_x = self.workspace_height - (0.5 + x_y[0]) / ratio
+        real_y = self.workspace_width / 2 - (0.5 + x_y[1]) / ratio
 
-        pass
+        return [(real_x + self.plate_offset) / 100, real_y / 100]
 
-    def _from_coordinate_to_weightmap(self, x_y):
-        row = int(self.workspace_height - int(x_y[0] * 100 - self.plate_offset))
-        column = int(self.workspace_width / 2 - int(x_y[1] * 100))
 
-        return row, column
+
+    def _add_obstacles(self, top_left, bottom_right):
+
+        # center = top_left[]
+
+        length = bottom_right[0] - top_left[0] + 1
+        width = bottom_right[1] - top_left[1] + 1
+
+        center_x = (bottom_right[0] + top_left[0]) / 2
+        center_y = (bottom_right[1] + top_left[1]) / 2
+
+        center = self._from_pixel_to_coordinate([center_x, center_y], self.pixel_ratio)
+
+        ob_list = []
+
+        for i in range(length):
+            for j in range(width):
+                point = (top_left[1] + j, top_left[0] + i)
+                ob_list.append(point)
+
+        self.analyzer.set_obstacles(ob_list)
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[length/200, width/200, 0.0001],
+                        rgbaColor=[1, 0, 0, 1],
+                        basePosition=[center[0], center[1], 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
 
 
     def _compare_object_base(self, pick_pos):
@@ -409,24 +460,51 @@ class MapEnv(Env):
         return move_object
 
 
+
+    def _show_path(self, path):
+        for point in path:
+            center_x = point[1]
+            center_y = point[0]
+            center_z = self.weight_map[center_x, center_y] / 100
+
+            center = self._from_pixel_to_coordinate([center_x, center_y], self.weight_map_ratio)
+
+            self._create_obj(self.p.GEOM_BOX,
+                             mass=-1,
+                             halfExtents=[0.005, 0.005, 0.0001],
+                             # rgbaColor=[0.93, 0.77, 0.56, 1],
+                             rgbaColor=[0, 0, 0, 1],
+                             basePosition=[center[0], center[1], center_z + 0.01],
+                             baseOrientation=[0, 0, 0, 1]
+                             )
+
+
+
+
     def _apply_action(self, raw_action):
         """ apply action to update the map."""
 
         # action = np.clip(action, [7, 24, 7, 24], [48, 72, 48, 72])
 
-        action[0] = [raw_action[0], raw_action[1]]
-        action[1] = [raw_action[2], raw_action[3]]
-        action[2] = raw_action[4]
+        pick_xy = [raw_action[0], raw_action[1]]
+        place_xy = [raw_action[2], raw_action[3]]
 
-        pick_background_height = self.weight_map[self._from_coordinate_to_weightmap(action[0])]
-        place_background_height = self.weight_map[self._from_coordinate_to_weightmap(action[1])]
+        pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
+        place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
 
-        pick_xy = action[0]
+
+        if raw_action[4] == 0:
+            place_orin = [0, -math.pi, 0]
+
+        else:
+            place_orin = [0, -math.pi, math.pi / 2]
+
+
+        pick_background_height = self.weight_map[int(raw_action[0]), int(raw_action[1])]
+        place_background_height = self.weight_map[int(raw_action[2]), int(raw_action[3])]
 
         move_object = self._compare_object_base(pick_xy)
 
-        #### orin #####
-        place_orin = action[2]
 
         if move_object:
             base, pick_orin = self.p.getBasePositionAndOrientation(move_object)
@@ -440,8 +518,8 @@ class MapEnv(Env):
 
         place_z = place_background_height / 100 + self.arm.grip_z_offset
 
-        pick_point = [action[0][0], action[0][1], pick_z]
-        place_point = [action[1][0], action[1][1], place_z]
+        pick_point = [pick_xy[0], pick_xy[1], pick_z]
+        place_point = [place_xy[0], place_xy[1], place_z]
 
         self.arm.pick_place_object(move_object, pick_point, pick_orin, place_point, place_orin)
 
@@ -453,7 +531,27 @@ class MapEnv(Env):
 
 
     def _get_reward(self):
-        pass
+        reward = 0
+
+        self._update_weight_map()
+        self.analyzer.set_map(self.weight_map)
+        self.analyzer.search()
+
+        success_1, path_1, cost_1 = self.analyzer.get_result(0)
+        success_2, path_2, cost_2 = self.analyzer.get_result(1)
+
+        if success_1:
+            reward += 100
+            reward -= cost_1
+
+        if success_2:
+            reward += 100
+            reward -= cost_2
+
+        self._show_path(path_1)
+        self._show_path(path_2)
+
+        return reward
 
 
     def _is_success(self, reward):
@@ -504,20 +602,24 @@ class MapEnv(Env):
 ###### test map class #####
 my_map = MapEnv()
 
+my_map._add_object()
 my_map.reset()
-my_map.add_object()
-my_map._update_weight_map()
 
-action = [0.4, 0, 0.6, 0, [0, -math.pi, -math.pi/2]]
+# my_map._add_obstacles([25,0], [50,28])
+
+action = [30, 28, 60, 28, 1]
 my_map.step(action)
+#
+# action = [60, 28, 35, 28, 0]
+# my_map.step(action)
 
-action = [0.6, 0, 0.4, 0, [0, -math.pi, 0]]
-my_map.step(action)
+# my_map._show_path()
 
+# my_map.cal_show_path()
+
+print("---------------------------")
 print(my_map.analyzer.get_result(0))
-
-my_map.cal_show_path()
-
+print(my_map.analyzer.get_result(1))
 
 for i in range(100000):
     p.stepSimulation()

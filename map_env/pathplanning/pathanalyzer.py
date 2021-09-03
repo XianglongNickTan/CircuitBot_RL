@@ -13,7 +13,7 @@ class PathAnalyzer:
         self.map = Map()
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.result = [PathResult(), PathResult()]
-        self.min_slope = 0.5
+        self.min_slope = 0.2
         self.max_slope = 2
 
     def set_map(self, array):
@@ -26,11 +26,20 @@ class PathAnalyzer:
     def set_pathplan(self, pair_no, departure, destination):
         self.path_planners[pair_no].set_pathplan(self.map.get_coordination(departure[0], departure[1]), self.map.get_coordination(destination[0], destination[1]))
 
+    def add_obstacles(self, new_obstacles):
+        self.path_planners[0].add_obstacles(new_obstacles)
+
+    def set_obstacles(self, new_obstacles):
+        self.path_planners[0].set_obstacles(new_obstacles)
+
+    def clear_obstacles(self, obstacles):
+        self.path_planners[0].clear_obstacles()
+
     def search(self):
         success1 = self.path_planners[0].search()
 
         if success1:
-            self.path_planners[1].set_obstacles(self.path_planners[0].path)            
+            self.path_planners[1].add_obstacles(self.path_planners[0].obstacles + self.path_planners[0].path)            
             success2 = self.path_planners[1].search()
             if success2:
                 self.result[0] = PathResult(True, self.path_planners[0].path, self.path_planners[0].cost)
@@ -42,6 +51,9 @@ class PathAnalyzer:
         else:
             self.result[0] = PathResult(False, [], -1)
             self.result[1] = PathResult(False, [], -1)
+
+        self.path_planners[0].obstacles.clear()
+        self.path_planners[1].obstacles.clear()
         
         print(self.result[0])
         print(self.result[1])

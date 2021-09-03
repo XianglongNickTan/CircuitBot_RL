@@ -33,8 +33,14 @@ class PathPlanner:
         self.departure = departure
         self.destination = destination
 
+    def add_obstacles(self, obstacles):
+        self.obstacles += obstacles
+
     def set_obstacles(self, obstacles):
         self.obstacles = obstacles
+
+    def clear_obstacles(self, obstacles):
+        self.obstacles.clear()
 
     def search(self):
         self.open_list = SearchQueue()

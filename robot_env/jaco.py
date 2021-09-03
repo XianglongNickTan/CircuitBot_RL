@@ -53,16 +53,17 @@ class Jaco:
 
 
         ### inter pos control ###
-        self.lift_pos = [0.5, 0, 0.4]
+        self.lift_pos = [0.5, 0, 0.45]
         self.rest_pos = [0.12, 0, 0.4]
         self.grip_z_offset = 0.08
         # self.ori_offset = 0.2
         self.ori_offset = 0
+        # self.restOrientation = [0, -math.pi, 0.2]
         self.restOrientation = [0, -math.pi, 0.2]
 
 
         ## goal variables ##
-        self.goalOrientation = [0, -math.pi, 0.2]
+        self.goalOrientation = [0, -math.pi, 0]
 
         self.goalReached = False
         self.goalEpsilon = 0.1

@@ -1,10 +1,12 @@
-# import numpy as np
+#
 # import time
 #
 # from pathanalyzer import PathAnalyzer
 # from map import Map
 # from maps.bigmap import bigmap
 # from maps.bigmap import bigmap2
+# import numpy as np
+# import pandas as pd
 #
 # def map1():
 #     return np.array(
@@ -54,7 +56,11 @@
 #
 #
 # analyzer = PathAnalyzer()
-# array = map2()
+#
+# # df = pd.read_csv(r"D:\Source\UWP\CircuitBot_RL\pathplanning\test.csv", sep=',')
+# # df.head()
+# # mapppps = df.values
+#
 # analyzer.set_map(bigmap2())
 # analyzer.set_pathplan(0,[5,42],[40,36])
 # analyzer.set_pathplan(1,[5,25],[42,25])
