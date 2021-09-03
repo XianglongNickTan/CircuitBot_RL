@@ -98,7 +98,7 @@ class PathAnalyzer:
         # 注意此处要手动设置一下z轴的高度,否则地图的比例会很奇怪
         ax.plot_wireframe(X, Y, Z, cmap=plt.cm.gist_earth)
         
-        ax.set_zlim(0,4)
+        # ax.set_zlim(0,4)
 
          # 绘制三维路线图
         pathT = np.transpose(self.path_planners[0].path)  # [[1,2],[1,2],[1,2]...]
