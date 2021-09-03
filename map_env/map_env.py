@@ -1,5 +1,4 @@
 import pybullet as p
-import sys
 import time
 from collections import deque
 import cv2
@@ -9,9 +8,8 @@ from gym import spaces, Env
 from gym.utils import seeding
 import os, sys
 import math
-from pathplanning.map import Map
-from pathplanning.analyzer import Analyzer
-
+from pathplanning.pathanalyzer import PathAnalyzer
+import pandas as pd
 from robot_env.jaco import Jaco
 
 
@@ -57,11 +55,10 @@ class PhysClientWrapper:
         return func(*args, **kwargs)
 
 
-
 class MapEnv(Env):
     def __init__(self,
-                 map_row=56,
-                 map_column=40,
+                 map_row=80,
+                 map_column=56,
                  n_substeps=5,  # Number of simulation steps to do in every env step.
                  done_after=float("inf"),
                  use_gui=True,
@@ -78,9 +75,8 @@ class MapEnv(Env):
 
         self.p = PhysClientWrapper(p, physics_client)
         self.p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
+        self.p.configureDebugVisualizer(self.p.COV_ENABLE_SHADOWS, 0)
         self.p.setGravity(0, 0, -10)
-
 
         ### map settings ###
         ### x - row - height
@@ -93,14 +89,38 @@ class MapEnv(Env):
         self.workspace_height = workspace_height
 
 
+        ### robot pick place settings ###
+        self.pick_threshold = 0.01     ## m
+        self.objects = []
+        self.reach_x = [0.30, 0.68]
+        self.reach_y = [-0.2, 0.2]
+        self.reach_z = [0.06, 0.4]
+
+
+        ### print env settings ###
+        self.electrode_x_offset = 15   ### row in weight map
+        self.electrode_y_offset = 6
+        self.ele_x_n = (self.electrode_x_offset + self.plate_offset) / 100
+        self.ele_x_f = (self.workspace_height - self.electrode_x_offset + self.plate_offset) / 100
+        self.ele_y_l = self.electrode_y_offset / 100
+        self.ele_y_r = -self.electrode_y_offset / 100
+
+        self.ele_r_n = int(self.electrode_x_offset)
+        self.ele_r_f = int(self.workspace_height - self.electrode_x_offset)
+        self.ele_c_l = int(self.workspace_width / 2 - self.electrode_y_offset)
+        self.ele_c_r = int(self.workspace_width / 2 + self.electrode_y_offset)
+
         ### training settings ###
         self.numSteps = 0
         self.n_substeps = n_substeps
         self.doneAfter = done_after
+        self.pixel_ratio = 8    ### increase picture size by 2
 
+
+        ### action = [x, y, x, y, ori] ###
         self.action_space = spaces.Box(
-            low=np.array([0, 0, 0, 0]),
-            high=np.array([self.row - 1, self.column - 1, self.row - 1, self.column - 1]),
+            low=np.array([22, 8, 22, 8, 0]),
+            high=np.array([60, self.column - 1, self.row - 1, self.column - 1, 1]),
             dtype=np.int)
 
         self.observation_space = spaces.Box(
@@ -126,49 +146,24 @@ class MapEnv(Env):
             fov=fov, aspect=1, nearVal=self.nearVal, farVal=self.farVal)
 
 
-
-
-
-        ### robot pick place settings ###
-        self.pick_threshold = 0.005
-        self.objects = []
-        self.reach_x = [0.30, 0.68]
-        self.reach_y = [-0.2, 0.2]
-        self.reach_z = [0.06, 0.4]
-
-
-
         ### init map ###
         self.init_sim()
+        self.weight_map = None
 
         ### init jaco ###
         self.arm = Jaco(self.p)
 
-
         ### init path planning ###
-        self.analyzer = Analyzer()
-
-
+        self.analyzer = PathAnalyzer()
         self.path_length = 0
-
-        self.success = False
-        self.is_done = False
-
-
-    def _move_to(self, pos, ori):
-
-        # ori = self.p.getQuaternionFromEuler(ori)
-
-        self.arm.move_to(pos, ori)
-
-        print(self.arm.get_endEffector_pos())
 
 
     def _get_sim_image(self):
-        pixel_ratio = 4
-        width, height = self.workspace_height * pixel_ratio, self.workspace_height * pixel_ratio
+        width, height = self.workspace_height * self.pixel_ratio, self.workspace_height * self.pixel_ratio
 
-        width_clip = int((self.workspace_height - self.workspace_width) * (pixel_ratio / 2))
+        width_clip = int((self.workspace_height - self.workspace_width) * (self.pixel_ratio / 2))
+
+        # self.p.stepSimulation()
 
         img = self.p.getCameraImage(
             width,
@@ -184,40 +179,48 @@ class MapEnv(Env):
         rgb_map = rgb[:, :, 0:3]
         rgb_map = rgb_map[:, width_clip:-width_clip, :]
 
-
         depth_map = np.array(img[3], dtype=np.float).reshape(height, width)
         depth_map = depth_map[:, width_clip:-width_clip]
 
         ### the distance from farVal(plane) to object height (m)####
         depth_map = self.farVal - self.farVal * self.nearVal / (self.farVal - (self.farVal - self.nearVal) * depth_map)
+        depth_map *= 100    ### convert to cm
+        depth_map -= 1      ### minus plate height
 
         rgb_d = np.dstack((rgb_map, depth_map))
 
         return rgb_map, depth_map, rgb_d
 
 
-    def _get_weight_map(self):
+    def _update_weight_map(self):
         _, depth_map, _ = self._get_sim_image()
-
-        depth_map *= 100    ### convert to cm
-        depth_map -= 1      ### minus plate height
 
         x, y = depth_map.shape[0:2]
 
         #### resize the map to weight map ######
-        weight_map = cv2.resize(depth_map, (int(y / 4), int(x / 4)))
+        weight_map = cv2.resize(depth_map, (int(y / self.pixel_ratio), int(x / self.pixel_ratio)))
+
         # weight_map = depth_map
-
-        return weight_map
-
+        self.weight_map = weight_map
 
 
-    def _create_obj(self, obj, mass=None, halfExtents=None, rgbaColor=None,
+    def _create_obj(self, obj, mass=None, halfExtents=None, radius=None, height=None, rgbaColor=None,
                    basePosition=None, baseOrientation=None, use_file=None):
 
         if not use_file:
-            visual = self.p.createVisualShape(obj, halfExtents=halfExtents, rgbaColor=rgbaColor)
-            shape = self.p.createCollisionShape(obj, halfExtents=halfExtents)
+
+            if obj == self.p.GEOM_BOX:
+                visual = self.p.createVisualShape(obj, halfExtents=halfExtents, rgbaColor=rgbaColor)
+                shape = self.p.createCollisionShape(obj, halfExtents=halfExtents)
+
+            elif obj == self.p.GEOM_CYLINDER:
+                # visual = self.p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
+                visual = self.p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
+                # shape = self.p.createCollisionShape(obj, radius=radius, height=height)
+                shape = -1
+
+            else:
+                raise NotImplementedError()
 
         else:
             visual = self.p.createVisualShape(obj, fileName=use_file, rgbaColor=rgbaColor)
@@ -234,81 +237,111 @@ class MapEnv(Env):
 
     def init_sim(self):
 
-        # planeId = self.p.loadURDF("plane.urdf")
+        planeId = self.p.loadURDF("plane.urdf")
 
+        ### create plate ###
         self._create_obj(self.p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.workspace_height/200, self.workspace_width/200, 0.005],
-                        rgbaColor=[0, 1, 1, 1],
+                        # rgbaColor=[0.93, 0.77, 0.56, 1],
+                        rgbaColor=[1, 0.90, 0.72, 1],
                         basePosition=[self.workspace_height/200+0.1, 0, 0.005],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
-        # ##### create wall for collision detect ######
-        # wall1 = self._create_obj(self.p.GEOM_BOX,
-        #                 mass=-1,
-        #                 halfExtents=[0.001, 0.27, 0.2],
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[-0.2, 0.48, 1],
-        #                 baseOrientation=[0, 0, 0, 1]
-        #                 )
-        #
-        # wall2 = self._create_obj(self.p.GEOM_BOX,
-        #                 mass=-1,
-        #                 halfExtents=[0.2, 0.001, 0.2],
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[0, 0.76, 1],
-        #                 baseOrientation=[0, 0, 0, 1]
-        #                 )
-        #
-        # wall3 = self._create_obj(self.p.GEOM_BOX,
-        #                 mass=-1,
-        #                 halfExtents=[0.001, 0.27, 0.2],
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[0.2, 0.48, 1],
-        #                 baseOrientation=[0, 0, 0, 1]
-        #                 )
-        #
-        # wall4 = self._create_obj(self.p.GEOM_BOX,
-        #                 mass=-1,
-        #                 halfExtents=[0.2, 0.001, 0.2],
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[0, 0.20, 1],
-        #                 baseOrientation=[0, 0, 0, 1]
-        #                 )
-        #
-        # self.wall.append(wall1)
-        # self.wall.append(wall2)
-        # self.wall.append(wall3)
-        # self.wall.append(wall4)
 
-        # object_1 = self._create_obj(self.p.GEOM_MESH,
-        #                 mass=0.01,
-        #                 use_file=obj_cuboid2,
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[0.5, 0.1, 0.05],
-        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-        #                 )
+        ### create near electrode ###
 
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[0.0075, 0.0075, 0.0001],
+                        rgbaColor=[0, 0, 0, 1],
+                        basePosition=[self.ele_x_n, self.ele_y_l, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
+                        rgbaColor=[0, 0, 0, 1],
+                        basePosition=[(self.ele_x_n + 0.1) / 2, self.ele_y_l, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[0.0075, 0.0075, 0.0001],
+                        rgbaColor=[1, 1, 1, 1],
+                        basePosition=[self.ele_x_n, self.ele_y_r, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
+                        rgbaColor=[1, 1, 1, 1],
+                        basePosition=[(self.ele_x_n + 0.1) / 2, self.ele_y_r, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+
+        ### create far electrode ###
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[0.0075, 0.0075, 0.0001],
+                        rgbaColor=[0, 0, 0, 1],
+                        basePosition=[self.ele_x_f, self.ele_y_l, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
+                        rgbaColor=[0, 0, 0, 1],
+                        basePosition=[self.ele_x_f + self.electrode_x_offset / 200, self.ele_y_l, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[0.0075, 0.0075, 0.0001],
+                        rgbaColor=[1, 1, 1, 1],
+                        basePosition=[self.ele_x_f, self.ele_y_r, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+
+        self._create_obj(self.p.GEOM_BOX,
+                        mass=-1,
+                        halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
+                        rgbaColor=[1, 1, 1, 1],
+                        basePosition=[self.ele_x_f + self.electrode_x_offset / 200, self.ele_y_r, 0.01],
+                        baseOrientation=[0, 0, 0, 1]
+                        )
+
+
+    def add_object(self):
 
         object_1 = self._create_obj(self.p.GEOM_MESH,
                         mass=0.01,
                         use_file=obj_cuboid2,
-                        rgbaColor=[1, 1, 1, 1],
-                        basePosition=[0.5, 0, 0.05],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
+                        rgbaColor=[1, 0, 1, 1],
+                        basePosition=[0.4, 0, 0.03],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
                         )
 
-        # object_1 = self._create_obj(self.p.GEOM_MESH,
-        #                 mass=0.01,
-        #                 use_file=obj_triangular_prism,
-        #                 rgbaColor=[1, 1, 1, 1],
-        #                 basePosition=[0.5, 0, 0.05],
-        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
-        #                 )
+        object_2 = self._create_obj(self.p.GEOM_MESH,
+                        mass=0.01,
+                        use_file=obj_cuboid2,
+                        rgbaColor=[1, 0, 1, 1],
+                        basePosition=[0.6, 0, 0.03],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+                        )
+
 
         self.objects.append(object_1)
-
+        self.objects.append(object_2)
 
     def _check_if_out_workspace(self, object, wall):
         P_min, P_max = self.p.getAABB(object)
@@ -326,26 +359,34 @@ class MapEnv(Env):
 
 
     def cal_show_path(self):
-        weight_map = self._get_weight_map()
-        self.analyzer.updateMap(weight_map)
+        self._update_weight_map()
+        self.analyzer.set_map(self.weight_map)
 
-        self.analyzer.update_pole_pair(0,[50,5],[36,70])
-        self.analyzer.update_pole_pair(1,[28,5],[25,75])
+        self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
+        self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
 
         self.analyzer.search()
         self.analyzer.draw_map_3D()
 
 
-    def show_map(self):
-        # rgb_map, depth_map, _ = self.get_sim_image()
-
+    def show_rgb_sim(self):
         rgb,_,_ = self._get_sim_image()
+
+        rgb *= 255
+
         cv2.imshow("test", rgb)
         cv2.waitKey(1)
 
 
-    def _action_from_pixel_to_coordinate(self, action):
+    def _from_pixel_to_coordinate(self, x_y):
+
         pass
+
+    def _from_coordinate_to_weightmap(self, x_y):
+        row = int(self.workspace_height - int(x_y[0] * 100 - self.plate_offset))
+        column = int(self.workspace_width / 2 - int(x_y[1] * 100))
+
+        return row, column
 
 
     def _compare_object_base(self, pick_pos):
@@ -356,8 +397,8 @@ class MapEnv(Env):
             base, orin = self.p.getBasePositionAndOrientation(object)
             object_z = base[2]
 
-            if pick_pos[0] - self.pick_threshold < base[0] < pick_pos[0] + self.pick_threshold:
-                if pick_pos[1] - self.pick_threshold < base[1] < pick_pos[1] + self.pick_threshold:
+            if pick_pos[0] - self.pick_threshold <= base[0] <= pick_pos[0] + self.pick_threshold:
+                if pick_pos[1] - self.pick_threshold <= base[1] <= pick_pos[1] + self.pick_threshold:
                     if object_z > max_z:
                         max_z = object_z
                         move_object = object
@@ -368,39 +409,45 @@ class MapEnv(Env):
         return move_object
 
 
-    def _apply_action(self, action):
+    def _apply_action(self, raw_action):
         """ apply action to update the map."""
 
         # action = np.clip(action, [7, 24, 7, 24], [48, 72, 48, 72])
 
+        action[0] = [raw_action[0], raw_action[1]]
+        action[1] = [raw_action[2], raw_action[3]]
+        action[2] = raw_action[4]
 
-        pick_point = [action[0], action[1]]
-        place_point = [action[2], action[3]]
+        pick_background_height = self.weight_map[self._from_coordinate_to_weightmap(action[0])]
+        place_background_height = self.weight_map[self._from_coordinate_to_weightmap(action[1])]
 
-        move_object = self._compare_object_base(pick_point)
+        pick_xy = action[0]
+
+        move_object = self._compare_object_base(pick_xy)
 
         #### orin #####
-        # orin = action[4]
-
+        place_orin = action[2]
 
         if move_object:
-            base, orin = self.p.getBasePositionAndOrientation(move_object)
-
-
-            ###### z value needs to be edited based on height map ########
-            place_point = [action[2], action[3], 0.1]
-
-            self.p.resetBasePositionAndOrientation(move_object,
-                                                   place_point,
-                                                   orin)
+            base, pick_orin = self.p.getBasePositionAndOrientation(move_object)
+            pick_orin = self.p.getEulerFromQuaternion(pick_orin)
+            pick_z = base[2] + self.arm.grip_z_offset
+            pick_orin = [0, -math.pi, pick_orin[2] + self.arm.ori_offset]
 
         else:
-            pass
+            pick_z = pick_background_height / 100 + self.arm.grip_z_offset
+            pick_orin = self.arm.restOrientation
 
+        place_z = place_background_height / 100 + self.arm.grip_z_offset
+
+        pick_point = [action[0][0], action[0][1], pick_z]
+        place_point = [action[1][0], action[1][1], place_z]
+
+        self.arm.pick_place_object(move_object, pick_point, pick_orin, place_point, place_orin)
 
 
     def _get_obs(self):
-        rgb_map, depth_map, rgb_d = self._get_sim_image()
+        _, _, rgb_d = self._get_sim_image()
 
         return rgb_d
 
@@ -409,8 +456,19 @@ class MapEnv(Env):
         pass
 
 
-    def _is_success(self):
+    def _is_success(self, reward):
         pass
+
+
+    def reset(self):
+        for _ in range(50):
+            self.p.stepSimulation()
+            # time.sleep(1. / 240.)  # set time interval for visulaization
+
+        init_obs = self._get_obs()
+        self._update_weight_map()
+
+        return init_obs
 
 
     def step(self, action):
@@ -421,12 +479,13 @@ class MapEnv(Env):
 
         self._apply_action(action)
 
-        for i in range(self.n_substeps):
-            self.p.stepSimulation()
+        # for i in range(self.n_substeps):
+        #     self.p.stepSimulation()
 
         self.numSteps += 1
 
         current_obs = self._get_obs()
+        self._update_weight_map()
 
         info = {}
         reward = self._get_reward()
@@ -436,6 +495,7 @@ class MapEnv(Env):
 
         return current_obs, reward, done, info
 
+
     def render(self, mode="human"):
         pass
 
@@ -444,75 +504,24 @@ class MapEnv(Env):
 ###### test map class #####
 my_map = MapEnv()
 
+my_map.reset()
+my_map.add_object()
+my_map._update_weight_map()
 
-pick_x = p.addUserDebugParameter("x",-1,1,0.5)
-pick_y = p.addUserDebugParameter("y",-1,1,0)
-pick_z = p.addUserDebugParameter("z",0,1,0.5)
-pick_orin = p.addUserDebugParameter("o", -3.14,3.14,-2.942)
-pick_angle = p.addUserDebugParameter("a", 0,2,0)
+action = [0.4, 0, 0.6, 0, [0, -math.pi, -math.pi/2]]
+my_map.step(action)
 
-pick_lift = p.addUserDebugParameter("l", 0,2,0)
+action = [0.6, 0, 0.4, 0, [0, -math.pi, 0]]
+my_map.step(action)
 
-pick_con = p.addUserDebugParameter("c", 0, 1, 0)
+print(my_map.analyzer.get_result(0))
 
-
-
-x = p.readUserDebugParameter(pick_x)
-y = p.readUserDebugParameter(pick_y)
-z = p.readUserDebugParameter(pick_z)
-o = p.readUserDebugParameter(pick_orin)
-angle = p.readUserDebugParameter(pick_angle)
-lift = p.readUserDebugParameter(pick_lift)
+my_map.cal_show_path()
 
 
-a = [0.5, 0, 0.06]
-ori = [0, -math.pi, -2.95]
-b = [0.65, 0 , 0.06]
-
-my_map.arm.pick_place_object(my_map.objects[0], a, ori, b, ori)
-my_map.show_map()
-
-for i in range(10):
+for i in range(100000):
     p.stepSimulation()
     time.sleep(1./240.)
-    my_map.show_map()
-
-# add_test_obj()
-#
-# for i in range(1000000):
-#
-#     x = p.readUserDebugParameter(pick_x)
-#     y = p.readUserDebugParameter(pick_y)
-#     z = p.readUserDebugParameter(pick_z)
-#     o = p.readUserDebugParameter(pick_orin)
-#     angle = p.readUserDebugParameter(pick_angle)
-#     lift = p.readUserDebugParameter(pick_lift)
-#
-#     con = p.readUserDebugParameter(pick_con)
-#
-#     orin = [0, -math.pi, o]
-#
-#     if lift == 0:
-#         my_map._move_to(my_map.lift_pos, orin)
-#
-#     else:
-#         pos = [x, y, z]
-#         my_map._move_to(pos, orin)
-#
-#     if con == 1:
-#         my_map.arm.create_gripper_constraints(my_map.objects[0])
-#
-#     else:
-#         my_map.arm.remove_gripper_constraints()
-#
-#
-#
-#     my_map.arm.gripper_control(angle)
-#
-#     p.stepSimulation()
-#     time.sleep(1./240.)
-#     my_map.show_map()
-
+    # my_map.show_rgb_sim()
 
 # my_map.cal_show_path()
-

@@ -51,4 +51,7 @@ class Map:
     def get_coordination(self, x, y):
         return Coordination(x, y, self.get_z_index(x, y))
 
+    def get_complete_coordination(self, coordination):
+        return Coordination(coordination.x, coordination.y, self.get_z_index(coordination.x, coordination.y))
+
 
