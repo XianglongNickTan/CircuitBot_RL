@@ -20,7 +20,9 @@ class PathPlanner:
         self.close_list = None
         self.node_searched = 0
 
+        self.path = []
         self.reached = False
+        
         self.obstacles = []
         self.result_path = []
 
@@ -31,7 +33,7 @@ class PathPlanner:
         self.departure = departure
         self.destination = destination
 
-    def set_obstacles(self, obstacles):
+    def add_obstacles(self, obstacles):
         self.obstacles = obstacles
 
     def search(self):
@@ -117,7 +119,8 @@ class PathPlanner:
             pos_list.append((self.get_map().get_coordination(self.destination.x, self.destination.y), False))
 
         vals = self.get_map().dem_map - location.z
-        temps = np.where(np.absolute(vals) == self.analyzer.slope_val)
+        temps = np.where(self.analyzer.min_slope < np.absolute(vals))
+        temps = np.where(np.absolute(temps) < self.analyzer.max_slope)
         slope_pts = np.flip(np.transpose(temps), axis = 1)
 
         # for slope_pt in slope_pts.tolist():
@@ -168,10 +171,10 @@ class PathPlanner:
                 continue
             new_pos = self.get_map().get_coordination(new_pos.x, new_pos.y)
             if isStepOn:
-                if (new_pos.z - pos.z) > self.analyzer.slope_val or (new_pos.z - pos.z) <= 0:
+                if (new_pos.z - pos.z) > self.analyzer.max_slope or (new_pos.z - pos.z) <= 0:
                     continue
             else:
-                if (pos.z - new_pos.z) > self.analyzer.slope_val or (pos.z - new_pos.z) <= 0:
+                if (pos.z - new_pos.z) > self.analyzer.max_slope or (pos.z - new_pos.z) <= 0:
                     continue
             pos_list.append(new_pos)
         return pos_list

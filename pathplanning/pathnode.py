@@ -95,10 +95,10 @@ class PathNode(Node):
             new_pos = self.get_map().get_coordination(new_pos.x, new_pos.y)
 
             if self.isStepping:
-                if abs(pos.z - new_pos.z) > self.path_planner.analyzer.slope_val:
+                if abs(pos.z - new_pos.z) > self.path_planner.analyzer.max_slope:
                     continue
             else:
-                if abs(pos.z - new_pos.z) >= self.path_planner.analyzer.slope_val:
+                if abs(pos.z - new_pos.z) >= self.path_planner.analyzer.max_slope:
                     continue
 
             if len(self.obstacles) != 0:

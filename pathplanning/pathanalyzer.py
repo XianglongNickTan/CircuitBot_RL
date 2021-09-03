@@ -13,22 +13,27 @@ class PathAnalyzer:
         self.map = Map()
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.result = [PathResult(), PathResult()]
-        self.slope_val = 0.5
-    
+        self.min_slope = 0.2
+        self.max_slope = 0.7
+
     def set_map(self, array):
         self.map.read_fromNdArray(array)
 
-    def set_slope_value(self, val):
-        self.slope_val = val
+    def set_slope_value(self, min_val, max_val):
+        self.min_slope = min_val
+        self.max_slope = max_val
 
     def set_pathplan(self, pair_no, departure, destination):
         self.path_planners[pair_no].set_pathplan(self.map.get_coordination(departure[0], departure[1]), self.map.get_coordination(destination[0], destination[1]))
+
+    def add_obstacles(self, new_obstacles):
+        self.path_planners[0].add_obstacles(new_obstacles)
 
     def search(self):
         success1 = self.path_planners[0].search()
 
         if success1:
-            self.path_planners[1].set_obstacles(self.path_planners[0].path)            
+            self.path_planners[1].add_obstacles(self.path_planners[0].obstacles + self.path_planners[0].path)            
             success2 = self.path_planners[1].search()
             if success2:
                 self.result[0] = PathResult(True, self.path_planners[0].path, self.path_planners[0].cost)
@@ -40,6 +45,9 @@ class PathAnalyzer:
         else:
             self.result[0] = PathResult(False, [], -1)
             self.result[1] = PathResult(False, [], -1)
+
+        self.path_planners[0].obstacles.clear()
+        self.path_planners[1].obstacles.clear()
         
         print(self.result[0])
         print(self.result[1])
@@ -105,13 +113,15 @@ class PathAnalyzer:
         Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.path_planners[1].path]
         ax.scatter(Xp2,Yp2,Zp2,c='b',s=200)
 
-        slope_pts = np.transpose(np.where(np.absolute(self.map.dem_map - 0) == self.slope_val))
-        slope_ptsT = np.transpose(slope_pts)
-        Xp3 = slope_ptsT[1]
-        Yp3 = slope_ptsT[0]
-        Zp3 = [self.map.dem_map[pos[0], pos[1]] for pos in slope_pts]
+        # temp = np.where(np.absolute(self.map.dem_map - 0) > self.min_slope)
+        # slope_pts = np.transpose(np.where(np.absolute(temp) < self.max_slope))
 
-        ax.scatter(Xp3,Yp3,Zp3,c='r',s=800)
+        # slope_ptsT = np.transpose(slope_pts)
+        # Xp3 = slope_ptsT[1]
+        # Yp3 = slope_ptsT[0]
+        # Zp3 = [self.map.dem_map[pos[0], pos[1]] for pos in slope_pts]
+
+        # ax.scatter(Xp3,Yp3,Zp3,c='r',s=800)
         plt.show()
 
 
