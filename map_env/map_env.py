@@ -31,7 +31,6 @@ obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
 np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
 
 
-
 class PhysClientWrapper:
     """
     This is used to make sure each BulletRobotEnv has its own physicsClient and
@@ -96,6 +95,7 @@ class MapEnv(Env):
         self.reach_y = [-0.2, 0.2]
         self.reach_z = [0.06, 0.4]
 
+
         ### training settings ###
         self.numSteps = 0
         self.n_substeps = n_substeps
@@ -106,15 +106,6 @@ class MapEnv(Env):
         ### print env settings ###
         self.electrode_x_offset = 15  ### row in weight map
         self.electrode_y_offset = 6
-        # self.ele_x_n = (self.electrode_x_offset + self.plate_offset) / 100
-        # self.ele_x_f = (self.workspace_height - self.electrode_x_offset + self.plate_offset) / 100
-        # self.ele_y_l = self.electrode_y_offset / 100
-        # self.ele_y_r = -self.electrode_y_offset / 100
-        #
-        # self.ele_r_n = int(self.electrode_x_offset)
-        # self.ele_r_f = int(self.workspace_height - self.electrode_x_offset)
-        # self.ele_c_l = int(self.workspace_width / 2 - self.electrode_y_offset)
-        # self.ele_c_r = int(self.workspace_width / 2 + self.electrode_y_offset)
 
         self.ele_r_n = int(self.workspace_height - self.electrode_x_offset)
         self.ele_r_f = int(self.electrode_x_offset - 1)
@@ -179,8 +170,6 @@ class MapEnv(Env):
         width, height = self.workspace_height * self.pixel_ratio, self.workspace_height * self.pixel_ratio
 
         width_clip = int((self.workspace_height - self.workspace_width) * (self.pixel_ratio / 2))
-
-        # self.p.stepSimulation()
 
         img = self.p.getCameraImage(
             width,
@@ -254,21 +243,18 @@ class MapEnv(Env):
 
     def init_sim(self):
 
-        planeId = self.p.loadURDF("plane.urdf")
+        self.p.loadURDF("plane.urdf")
 
         ### create plate ###
         self._create_obj(self.p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.workspace_height/200, self.workspace_width/200, 0.005],
-                        # rgbaColor=[0.93, 0.77, 0.56, 1],
                         rgbaColor=[1, 0.90, 0.72, 1],
                         basePosition=[self.workspace_height/200+0.1, 0, 0.005],
                         baseOrientation=[0, 0, 0, 1]
                         )
 
-
         ### create near electrode ###
-
         self._create_obj(self.p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
@@ -365,9 +351,9 @@ class MapEnv(Env):
         #                 )
 
 
-
         self.objects.append(object_1)
         # self.objects.append(object_2)
+
 
     def _check_if_out_workspace(self, object, wall):
         P_min, P_max = self.p.getAABB(object)
@@ -384,15 +370,11 @@ class MapEnv(Env):
         return False
 
 
-    def cal_show_path(self):
-        self._update_weight_map()
-        self.analyzer.set_map(self.weight_map)
-
-        self.analyzer.search()
+    def _show_3d_weightmap_path(self):
         self.analyzer.draw_map_3D()
 
 
-    def show_rgb_sim(self):
+    def _show_rgb_sim(self):
         rgb,_,_ = self._get_sim_image()
 
         rgb *= 255
@@ -412,15 +394,13 @@ class MapEnv(Env):
 
     def _add_obstacles(self, top_left, bottom_right):
 
-        # center = top_left[]
-
         length = bottom_right[0] - top_left[0] + 1
         width = bottom_right[1] - top_left[1] + 1
 
         center_x = (bottom_right[0] + top_left[0]) / 2
         center_y = (bottom_right[1] + top_left[1]) / 2
 
-        center = self._from_pixel_to_coordinate([center_x, center_y], self.pixel_ratio)
+        center = self._from_pixel_to_coordinate([center_x, center_y], self.weight_map_ratio)
 
         ob_list = []
 
@@ -460,7 +440,6 @@ class MapEnv(Env):
         return move_object
 
 
-
     def _show_path(self, path):
         for point in path:
             center_x = point[1]
@@ -479,12 +458,8 @@ class MapEnv(Env):
                              )
 
 
-
-
     def _apply_action(self, raw_action):
         """ apply action to update the map."""
-
-        # action = np.clip(action, [7, 24, 7, 24], [48, 72, 48, 72])
 
         pick_xy = [raw_action[0], raw_action[1]]
         place_xy = [raw_action[2], raw_action[3]]
@@ -492,19 +467,15 @@ class MapEnv(Env):
         pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
         place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
 
-
         if raw_action[4] == 0:
             place_orin = [0, -math.pi, 0]
-
         else:
             place_orin = [0, -math.pi, math.pi / 2]
-
 
         pick_background_height = self.weight_map[int(raw_action[0]), int(raw_action[1])]
         place_background_height = self.weight_map[int(raw_action[2]), int(raw_action[3])]
 
         move_object = self._compare_object_base(pick_xy)
-
 
         if move_object:
             base, pick_orin = self.p.getBasePositionAndOrientation(move_object)
@@ -548,9 +519,6 @@ class MapEnv(Env):
             reward += 100
             reward -= cost_2
 
-        self._show_path(path_1)
-        self._show_path(path_2)
-
         return reward
 
 
@@ -583,7 +551,6 @@ class MapEnv(Env):
         self.numSteps += 1
 
         current_obs = self._get_obs()
-        self._update_weight_map()
 
         info = {}
         reward = self._get_reward()
@@ -596,34 +563,3 @@ class MapEnv(Env):
 
     def render(self, mode="human"):
         pass
-
-
-
-###### test map class #####
-my_map = MapEnv()
-
-my_map._add_object()
-my_map.reset()
-
-# my_map._add_obstacles([25,0], [50,28])
-
-action = [30, 28, 60, 28, 1]
-my_map.step(action)
-#
-# action = [60, 28, 35, 28, 0]
-# my_map.step(action)
-
-# my_map._show_path()
-
-# my_map.cal_show_path()
-
-print("---------------------------")
-print(my_map.analyzer.get_result(0))
-print(my_map.analyzer.get_result(1))
-
-for i in range(100000):
-    p.stepSimulation()
-    time.sleep(1./240.)
-    # my_map.show_rgb_sim()
-
-# my_map.cal_show_path()
