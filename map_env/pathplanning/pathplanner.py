@@ -56,12 +56,13 @@ class PathPlanner:
             if node_to_open == self.destination:
                 result = node_to_open
                 self.reached = True
-                print("SEARCH FINISHED!")
+                # print("SEARCH FINISHED!")
                 break
             self.expand()
             if self.node_searched % 100 == 0:
-                print(f'Searched {self.node_searched} nodes.')
-        print(f'Searched {self.node_searched} nodes.')
+                pass
+                # print(f'Searched {self.node_searched} nodes.')
+        # print(f'Searched {self.node_searched} nodes.')
 
         if self.reached:
             resultNodes = []
@@ -147,11 +148,11 @@ class PathPlanner:
                 continue
             count += 1
             pos_list.append((self.get_map().get_coordination(stop.x, stop.y), True))
-        print("slope ok for " + str(count))
+        # print("slope ok for " + str(count))
         return pos_list
     
     def find_slope_destination(self, slope_pt, isStepOn):
-        print("SEARCH xhSTARTED! - find_slope_destination")
+        # print("SEARCH xhSTARTED! - find_slope_destination")
         # 将起点加入到open_list中
         start_pt = slope_pt
         searched = SearchQueue()
@@ -162,7 +163,7 @@ class PathPlanner:
             result = searched.pop()
             for item in self.find_further_slope_pts(result, isStepOn):
                 searched.list.append(item)
-            print(str(result.x) + " " + str(result.y) + " " + str(result.z))
+            # print(str(result.x) + " " + str(result.y) + " " + str(result.z))
         return result
 
     def find_further_slope_pts(self, slope_pt, isStepOn):

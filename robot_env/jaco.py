@@ -18,9 +18,11 @@ class Jaco:
                  reach_low=(-1, -1, 0),  # Lower limit of the arm workspace (might be used for safety).
                  reach_high=(1, 1, 1),  # Higher limit of the arm workspace.
                  randomize_arm=False,  # Whether arm initial position should be randomized.
-                 urdf=jacoUrdf  # Where to load the arm definition.
+                 urdf=jacoUrdf,  # Where to load the arm definition.
+                 use_realtime=False
                  ):
         self.p = p
+        self.use_realtime = use_realtime
 
         ## load urdf
         self.armId = self.p.loadURDF(
@@ -55,7 +57,7 @@ class Jaco:
         ### inter pos control ###
         self.lift_pos = [0.5, 0, 0.45]
         self.rest_pos = [0.12, 0, 0.4]
-        self.grip_z_offset = 0.08
+        self.grip_z_offset = 0.07
         # self.ori_offset = 0.2
         self.ori_offset = 0
         # self.restOrientation = [0, -math.pi, 0.2]
@@ -165,8 +167,8 @@ class Jaco:
         while not self.goalReached:
             self.check_goal_reach()
             self.p.stepSimulation()
-            time.sleep(1. / 240.)     # set time interval for visulaization
-
+            if self.use_realtime:
+                time.sleep(1. / 240.)     # set time interval for visulaization
 
     #### Save whether the arm has reached IK goal. ###
     def check_goal_reach(self):
@@ -250,21 +252,29 @@ class Jaco:
         self.goalPosition = pos
         self.goalOrientation = ori
         self.ik_step()
-        self.step_simulation()
+        # self.step_simulation()
+
+        for _ in range(150):
+            self.p.stepSimulation()
+            if self.use_realtime:
+                time.sleep(1. / 240.)     # set time interval for visulaization
+
 
     def pick(self):
         self.gripper_control(self.gripperClose)
         # self.step_simulation()
         for _ in range(50):
             self.p.stepSimulation()
-            time.sleep(1. / 240.)     # set time interval for visulaization
+            if self.use_realtime:
+                time.sleep(1. / 240.)     # set time interval for visulaization
 
     def place(self):
         self.gripper_control(self.gripperOpen)
         # self.step_simulation()
         for _ in range(50):
             self.p.stepSimulation()
-            time.sleep(1. / 240.)     # set time interval for visulaization
+            if self.use_realtime:
+                time.sleep(1. / 240.)     # set time interval for visulaization
 
 
     ############ high-level action control ##########

@@ -55,15 +55,15 @@ class PathAnalyzer:
         self.path_planners[0].obstacles.clear()
         self.path_planners[1].obstacles.clear()
         
-        print(self.result[0])
-        print(self.result[1])
+        # print(self.result[0])
+        # print(self.result[1])
     
     def get_result(self, no):
         return self.result[no].success, self.result[no].path, self.result[no].cost
 
          # 绘制地图以及路径
     def draw_map(self, path, pole_pair):
-        print("Drawing map...")
+        # print("Drawing map...")
         x = np.arange(0, self.map.width, 1)
         y = np.arange(0, self.map.height, 1)
         X, Y = np.meshgrid(x, y)
@@ -74,7 +74,7 @@ class PathAnalyzer:
         if path is not None:
         	#首先将路径节点列表转置一下,将x坐标和y坐标分别放到一行中
             path = np.transpose(path)
-            print('Path Array:', path)
+            # print('Path Array:', path)
             plt.scatter(path[0], path[1], c='y', linewidths=2)
         if pole_pair[0] is not None:
         	# 绘制起点坐标

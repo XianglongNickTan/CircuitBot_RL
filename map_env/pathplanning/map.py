@@ -36,14 +36,14 @@ class Map:
     
     # 从文件读取地图
     def read_fromNdArray(self, map, grid_size=1.0):
-        print('Loading DEM map...')
-        print('mean:', map.mean())
+        # print('Loading DEM map...')
+        # print('mean:', map.mean())
         
         self.dem_map = np.flipud(map)
         self.height, self.width = map.shape
         self.grid_size = grid_size
         self.map = np.zeros((self.height, self.width), dtype=int)
-        print(f'DEM map loaded. Width={self.width},height={self.height},grid size={self.grid_size}.')
+        # print(f'DEM map loaded. Width={self.width},height={self.height},grid size={self.grid_size}.')
 
     def get_z_index(self, x, y):
         return self.dem_map[y][x]

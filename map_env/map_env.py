@@ -59,7 +59,7 @@ class MapEnv(Env):
                  map_row=80,
                  map_column=56,
                  n_substeps=5,  # Number of simulation steps to do in every env step.
-                 done_after=float("inf"),
+                 done_after=10000,
                  use_gui=True,
                  workspace_width=56,
                  workspace_height=80,
@@ -89,8 +89,7 @@ class MapEnv(Env):
 
 
         ### robot pick place settings ###
-        self.pick_threshold = 0.01     ## m
-        self.objects = []
+        self.pick_threshold = 0.025     ## m
         self.reach_x = [0.30, 0.68]
         self.reach_y = [-0.2, 0.2]
         self.reach_z = [0.06, 0.4]
@@ -224,7 +223,7 @@ class MapEnv(Env):
         return objID
 
 
-    def init_sim(self):
+    def _init_sim(self):
 
         self.p.loadURDF("plane.urdf")
 
@@ -307,35 +306,7 @@ class MapEnv(Env):
                         )
 
 
-    def _add_object(self):
 
-        object_1 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_triangular_prism,
-                        rgbaColor=[1, 0, 1, 1],
-                        basePosition=[0.5, 0.06, 0.03],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,0])
-                        )
-
-        # object_2 = self._create_obj(self.p.GEOM_MESH,
-        #                 mass=0.01,
-        #                 use_file=obj_cuboid2,
-        #                 rgbaColor=[1, 0, 1, 1],
-        #                 basePosition=[0.6, 0, 0.03],
-        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-        #                 )
-
-        # object_2 = self._create_obj(self.p.GEOM_MESH,
-        #                 mass=0.01,
-        #                 use_file=obj_cuboid2,
-        #                 rgbaColor=[1, 0, 1, 1],
-        #                 basePosition=[0.6, 0, 0.03],
-        #                 baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-        #                 )
-
-
-        self.objects.append(object_1)
-        # self.objects.append(object_2)
 
 
     def _check_if_out_workspace(self, object, wall):
@@ -355,15 +326,6 @@ class MapEnv(Env):
 
     def _show_3d_weightmap_path(self):
         self.analyzer.draw_map_3D()
-
-
-    def _show_rgb_sim(self):
-        rgb,_,_ = self._get_sim_image()
-
-        rgb *= 255
-
-        cv2.imshow("test", rgb)
-        cv2.waitKey(1)
 
 
     def _from_pixel_to_coordinate(self, x_y, ratio):
@@ -403,6 +365,56 @@ class MapEnv(Env):
                         )
 
 
+    def _show_path(self, path):
+        for point in path:
+            center_x = point[1]
+            center_y = point[0]
+
+            center_x = self.workspace_height - center_x - 1
+            center_z = self.weight_map[center_x, center_y] / 100
+
+            center = self._from_pixel_to_coordinate([center_x, center_y], self.weight_map_ratio)
+
+            self._create_obj(self.p.GEOM_BOX,
+                             mass=-1,
+                             halfExtents=[0.005, 0.005, 0.0001],
+                             rgbaColor=[0, 0, 0, 1],
+                             basePosition=[center[0], center[1], center_z + 0.01],
+                             baseOrientation=[0, 0, 0, 1]
+                             )
+
+    def _add_object(self):
+        self.objects = []
+
+        object_1 = self._create_obj(self.p.GEOM_MESH,
+                        mass=0.01,
+                        use_file=obj_cuboid2,
+                        rgbaColor=[1, 0, 1, 1],
+                        basePosition=[0.495, 0.075, 0.03],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+                        )
+
+        object_2 = self._create_obj(self.p.GEOM_MESH,
+                        mass=0.01,
+                        use_file=obj_cuboid2,
+                        rgbaColor=[1, 0, 1, 1],
+                        basePosition=[0.6,-0.1, 0.03],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+                        )
+
+        object_3 = self._create_obj(self.p.GEOM_MESH,
+                        mass=0.01,
+                        use_file=obj_cuboid2,
+                        rgbaColor=[1, 0, 1, 1],
+                        basePosition=[0.7, 0, 0.03],
+                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
+                        )
+
+
+        self.objects.append(object_1)
+        self.objects.append(object_2)
+        self.objects.append(object_3)
+
     def _compare_object_base(self, pick_pos):
         move_object = None
         max_z = 0
@@ -423,23 +435,6 @@ class MapEnv(Env):
         return move_object
 
 
-    def _show_path(self, path):
-        for point in path:
-            center_x = point[1]
-            center_y = point[0]
-            center_z = self.weight_map[center_x, center_y] / 100
-
-            center = self._from_pixel_to_coordinate([center_x, center_y], self.weight_map_ratio)
-
-            self._create_obj(self.p.GEOM_BOX,
-                             mass=-1,
-                             halfExtents=[0.005, 0.005, 0.0001],
-                             rgbaColor=[0, 0, 0, 1],
-                             basePosition=[center[0], center[1], center_z + 0.01],
-                             baseOrientation=[0, 0, 0, 1]
-                             )
-
-
     def _apply_action(self, raw_action):
         """ apply action to update the map."""
 
@@ -448,9 +443,6 @@ class MapEnv(Env):
 
         pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
         place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
-
-        print("-----------")
-        print(pick_xy)
 
         if raw_action[4] == 0:
             place_orin = [0, -math.pi, 0]
@@ -480,6 +472,7 @@ class MapEnv(Env):
         self.arm.pick_place_object(move_object, pick_point, pick_orin, place_point, place_orin)
 
 
+
     def _get_obs(self):
         _, _, rgb_d = self._get_sim_image()
 
@@ -504,6 +497,9 @@ class MapEnv(Env):
             reward += 100
             reward -= cost_2
 
+        # self._show_path(path_1)
+        # self._show_path(path_2)
+
         return reward
 
 
@@ -513,7 +509,9 @@ class MapEnv(Env):
 
     def reset(self):
         ### init map ###
-        self.init_sim()
+        self._init_sim()
+        self._add_object()
+
         self.weight_map = None
 
         ### init jaco ###
@@ -527,10 +525,8 @@ class MapEnv(Env):
         self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
         self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
 
-
-        for _ in range(50):
+        for _ in range(1000):             ### stablize init
             self.p.stepSimulation()
-            # time.sleep(1. / 240.)  # set time interval for visulaization
 
         init_obs = self._get_obs()
         self._update_weight_map()
@@ -563,4 +559,11 @@ class MapEnv(Env):
 
 
     def render(self, mode="human"):
-        pass
+        rgb, _, _ = self._get_sim_image()
+        if mode == "rgb_array":
+            return rgb
+
+        elif mode == "human":
+            cv2.imshow("test", rgb)
+            cv2.waitKey(1)
+
