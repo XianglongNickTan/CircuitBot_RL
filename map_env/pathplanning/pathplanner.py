@@ -1,11 +1,11 @@
 import numpy as np
 import math
-from pathnode import PathNode
-from pathnode import PathIterator
-from helper import Coordination
-from helper import Node
-from helper import SearchQueue
-from helper import NodeIterator
+from map_env.pathplanning.pathnode import PathNode
+from map_env.pathplanning.pathnode import PathIterator
+from map_env.pathplanning.helper import Coordination
+from map_env.pathplanning.helper import Node
+from map_env.pathplanning.helper import SearchQueue
+from map_env.pathplanning.helper import NodeIterator
 
 class PathPlanner:
     def __init__(self, analyzer):
@@ -56,19 +56,14 @@ class PathPlanner:
             if node_to_open == self.destination:
                 result = node_to_open
                 self.reached = True
-                # print("SEARCH FINISHED!")
                 break
             self.expand()
-            if self.node_searched % 100 == 0:
-                pass
-                # print(f'Searched {self.node_searched} nodes.')
-        # print(f'Searched {self.node_searched} nodes.')
 
         if self.reached:
             resultNodes = []
             path = []
             total_cost = 0
-            # 对路径进行溯源
+
             resultNodes.append(result.get_pos())
             self.resultnode = result
             path += result.path
@@ -112,7 +107,7 @@ class PathPlanner:
                                             pred = self.calc_pred(new_node), path = path_from_current_node_result.path, 
                                             isStepping = isStepping, parent = node_to_open)
                         self.open_list.push(new_node)
-        # 将搜索过的该节点加入到close_list中
+
         self.close_list[node_to_open.y, node_to_open.x] = True
         self.node_searched += 1
 
@@ -130,11 +125,6 @@ class PathPlanner:
         temps = np.where(np.absolute(temps) < self.analyzer.max_slope)
         slope_pts = np.flip(np.transpose(temps), axis = 1)
 
-        # for slope_pt in slope_pts.tolist():
-        #     if (slope_pt[0], slope_pt[1]) in self.obstacles:
-        #         continue
-        #     pos_list.append((self.get_map().get_coordination(slope_pt[0], slope_pt[1]), True))
-
         count = 0
         for slope_pt in slope_pts.tolist():
             if (slope_pt[0], slope_pt[1]) in self.obstacles:
@@ -148,17 +138,14 @@ class PathPlanner:
                 continue
             count += 1
             pos_list.append((self.get_map().get_coordination(stop.x, stop.y), True))
-        # print("slope ok for " + str(count))
         return pos_list
     
     def find_slope_destination(self, slope_pt, isStepOn):
-        # print("SEARCH xhSTARTED! - find_slope_destination")
-        # 将起点加入到open_list中
         start_pt = slope_pt
         searched = SearchQueue()
         searched.list.append(start_pt)
         result = start_pt
-        # 开始循环搜索
+
         while not searched.is_empty():
             result = searched.pop()
             for item in self.find_further_slope_pts(result, isStepOn):
@@ -167,13 +154,12 @@ class PathPlanner:
         return result
 
     def find_further_slope_pts(self, slope_pt, isStepOn):
-            	#对应8个方向,也可以根据需要改为4个方向
         offsets = [(-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
         pos_list = []
         for offset in offsets:
             pos = slope_pt
             new_pos = Coordination(pos.x + offset[0], pos.y + offset[1])
-            #此处判断节点是否超出了地图范围
+
             if new_pos.x < 0 or new_pos.x >= self.get_map().width or new_pos.y < 0 or new_pos.y >= self.get_map().height:
                 continue
             new_pos = self.get_map().get_coordination(new_pos.x, new_pos.y)
@@ -195,7 +181,6 @@ class PathPlanner:
             ((node.x - self.destination.x) * grid_size) ** 2 + ((node.y - self.destination.y) * grid_size) ** 2)
         height_dist = abs(node.z - self.destination.z)
         pred = math.sqrt(horizon_dist ** 2 + height_dist ** 2)
-        # print(f'CALC PRED. Pos({location[0]},{location[1]}),pred = {pred:.2f}')
         return pred
     
 

@@ -2,7 +2,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LightSource
 from matplotlib import cm
-from helper import Coordination
+
+from map_env.pathplanning.helper import Coordination
 
 class Map:
     def __init__(self):

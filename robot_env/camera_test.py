@@ -7,7 +7,7 @@ import os, sys
 
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-urdf = rootdir + "/jaco_description/urdf/j2n6s300_twofingers.urdf"
+urdf = rootdir + "/robot_env/jaco_description/urdf/j2n6s300_twofingers.urdf"
 
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
