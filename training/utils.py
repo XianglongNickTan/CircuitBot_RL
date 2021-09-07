@@ -48,8 +48,6 @@ def apply_action(self, raw_action):
 
 
 
-
-
 def compare_object_base(self, pick_pos):
 	move_object = None
 	max_z = 0

@@ -183,11 +183,11 @@ class Environment(Env):
         # Only support rgb_array for now.
         if mode != 'rgb_array':
             raise NotImplementedError('Only rgb_array implemented')
-        color, _, _ = self.render_camera(self.agent_cams)
+        color, _, _ = self.render_camera()
         return color
 
 
-    def render_camera(self, config):
+    def render_camera(self):
         """Render RGB-D image with specified camera configuration."""
 
         width, height = self.workspace_height * self.pixel_ratio, self.workspace_height * self.pixel_ratio
@@ -368,7 +368,7 @@ class Environment(Env):
     def _get_obs(self):
         # Get RGB-D camera image observations.
         obs = {'color': (), 'depth': ()}
-        color, depth, _ = self.render_camera(self.agent_cams)
+        color, depth, _ = self.render_camera()
         obs['color'] += (color,)
         obs['depth'] += (depth,)
 
@@ -401,8 +401,8 @@ class Environment(Env):
 
     def reset(self):
 
-        p.setGravity(0, 0, -10)
 
+        p.setGravity(0, 0, -10)
 
 
         self.task.reset()
@@ -418,8 +418,8 @@ class Environment(Env):
         # if action is not None:
         #     self.task.apply_action(action)
 
-        if action is not None:
-            self.task.apply_action(action)
+        # if action is not None:
+        #     self.task.apply_action(action)
 
 
         while not self.is_static:

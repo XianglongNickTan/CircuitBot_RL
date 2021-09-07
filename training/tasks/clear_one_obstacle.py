@@ -34,8 +34,6 @@ class ClearObstaclesTask:
         self.max_steps = 3
 
 
-        self.objects = []
-
         self.weight_map = None
 
         # Workspace bounds.
@@ -51,6 +49,7 @@ class ClearObstaclesTask:
             high=np.array([58 * self.pixel_ratio, 47 * self.pixel_ratio, 58 * self.pixel_ratio, 47 * self.pixel_ratio, 1]),
             dtype=np.int)
 
+        self.objects = []
 
 
 
@@ -64,14 +63,6 @@ class ClearObstaclesTask:
                                     basePosition=[0.495, 0.075, 0.03],
                                     baseOrientation=p.getQuaternionFromEuler([0, 0, math.pi/2])
                                     )
-
-        # object_1 = utils.create_obj(p.GEOM_MESH,
-        #                             mass=0.01,
-        #                             use_file=obj_cuboid2,
-        #                             rgbaColor=utils.COLORS['blue'],
-        #                             basePosition=[0.495, 0.075, 0.03],
-        #                             baseOrientation=p.getQuaternionFromEuler([0, 0, math.pi/2])
-        #                             )
 
         self.objects.append(object_1)
 
@@ -90,8 +81,15 @@ class ClearObstaclesTask:
         self.weight_map = weight_map
 
 
+    def clear_object(self):
+        for object in self.objects:
+            p.removeBody(object)
+        self.objects = []
+
 
     def reset(self):
+        self.clear_object()
+
         self.init_task()
 
         self.analyzer = PathAnalyzer()
@@ -127,38 +125,44 @@ class ClearObstaclesTask:
         return reward
 
 
+    def done(self):
+        return None
+
+
 
     def get_discrete_oracle_agent(self):
         OracleAgent = collections.namedtuple('OracleAgent', ['act'])
 
 
+
         def act(obs, info):  # pylint: disable=unused-argument
             """Calculate action."""
 
-            raw_action = self.action_space.sample()
-            place_xy = [raw_action[2], raw_action[3]]
-            place_xy = utils.from_pixel_to_coordinate(place_xy, self._pixel_ratio)
-            move_object = self.object[0]
+            pixel_action = self.action_space.sample()
 
-            if raw_action[4] == 0:
+            place_xy = [pixel_action[2], pixel_action[3]]
+            place_xy = utils.from_pixel_to_coordinate(place_xy, self.pixel_ratio)
+            move_object = self.objects[0]
+
+            if pixel_action[4] == 0:
                 place_orin = [0, -math.pi, 0]
             else:
                 place_orin = [0, -math.pi, math.pi / 2]
 
 
             place_background_height = self.weight_map[
-                int(raw_action[2] / self.pixel_ratio), int(raw_action[3] / self.pixel_ratio)]
+                int(pixel_action[2] / self.pixel_ratio), int(pixel_action[3] / self.pixel_ratio)]
 
 
             base, pick_orin = p.getBasePositionAndOrientation(move_object)
 
             pick_orin = p.getEulerFromQuaternion(pick_orin)
 
-            pick_z = base[2] + self._arm.grip_z_offset
+            pick_z = base[2] + self.arm.grip_z_offset
 
             pick_orin = [0, -math.pi, pick_orin[2]]
 
-            place_z = place_background_height / 100 + self._arm.grip_z_offset
+            place_z = place_background_height / 100 + self.arm.grip_z_offset
 
             pick_point = [base[0], base[1], pick_z]
             place_point = [place_xy[0], place_xy[1], place_z]
