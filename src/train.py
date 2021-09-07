@@ -26,14 +26,14 @@ from ravens.dataset import Dataset
 import tensorflow as tf
 
 flags.DEFINE_string('train_dir', '.', '')
-flags.DEFINE_string('data_dir', '.', '')
-flags.DEFINE_string('task', 'hanoi', '')
+flags.DEFINE_string('data_dir', './datasets', '')
+flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
 flags.DEFINE_string('agent', 'transporter', '')
 flags.DEFINE_float('hz', 240, '')
-flags.DEFINE_integer('n_demos', 100, '')
-flags.DEFINE_integer('n_steps', 40000, '')
+flags.DEFINE_integer('n_demos', 10, '')
+flags.DEFINE_integer('n_steps', 100, '')
 flags.DEFINE_integer('n_runs', 1, '')
-flags.DEFINE_integer('interval', 1000, '')
+flags.DEFINE_integer('interval', 10, '')
 flags.DEFINE_integer('gpu', 0, '')
 flags.DEFINE_integer('gpu_limit', None, '')
 

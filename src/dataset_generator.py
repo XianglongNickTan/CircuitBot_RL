@@ -14,8 +14,8 @@ flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
 flags.DEFINE_string('data_dir', './datasets', '')
 flags.DEFINE_bool('disp', True, '')
 flags.DEFINE_bool('shared_memory', False, '')
-flags.DEFINE_string('mode', 'train', '')
-flags.DEFINE_integer('n', 1000, '')
+flags.DEFINE_string('mode', 'test', '')
+flags.DEFINE_integer('n', 50, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
 
 FLAGS = flags.FLAGS
@@ -27,7 +27,7 @@ def main(unused_argv):
   env = Environment(
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
-      hz=480)
+      hz=60)
   task = ClearObstaclesTask(env)
   task.mode = FLAGS.mode
 

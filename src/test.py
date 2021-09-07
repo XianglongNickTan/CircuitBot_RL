@@ -24,18 +24,18 @@ import numpy as np
 from ravens import agents
 from ravens import dataset
 from ravens import tasks
-from ravens.environments.environment import Environment
+from env.environment import Environment
+from tasks.clear_one_obstacle import ClearObstaclesTask
 import tensorflow as tf
 
 flags.DEFINE_string('root_dir', '.', '')
 flags.DEFINE_string('data_dir', '.', '')
-flags.DEFINE_string('assets_root', './assets/', '')
-flags.DEFINE_bool('disp', False, '')
+flags.DEFINE_bool('disp', True, '')
 flags.DEFINE_bool('shared_memory', False, '')
-flags.DEFINE_string('task', 'hanoi', '')
+flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
 flags.DEFINE_string('agent', 'transporter', '')
-flags.DEFINE_integer('n_demos', 100, '')
-flags.DEFINE_integer('n_steps', 40000, '')
+flags.DEFINE_integer('n_demos', 10, '')
+flags.DEFINE_integer('n_steps', 100, '')
 flags.DEFINE_integer('n_runs', 1, '')
 flags.DEFINE_integer('gpu', 0, '')
 flags.DEFINE_integer('gpu_limit', None, '')
@@ -60,11 +60,10 @@ def main(unused_argv):
 
   # Initialize environment and task.
   env = Environment(
-      FLAGS.assets_root,
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
-      hz=480)
-  task = tasks.names[FLAGS.task]()
+      hz=60)
+  task = ClearObstaclesTask(env)
   task.mode = 'test'
 
   # Load test dataset.

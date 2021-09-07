@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 from matplotlib import pyplot as plt
 from matplotlib.colors import LightSource
@@ -35,6 +36,7 @@ class PathAnalyzer:
         self.path_planners[0].clear_obstacles()
 
     def search(self):
+        last = time.time()
         success1 = self.path_planners[0].search()
 
         if success1:
@@ -53,6 +55,8 @@ class PathAnalyzer:
 
         self.path_planners[0].obstacles.clear()
         self.path_planners[1].obstacles.clear()
+
+        print(time.time() - last)
     
     def get_result(self, no):
         return self.result[no].success, self.result[no].path, self.result[no].cost
