@@ -81,14 +81,14 @@ class ClearObstaclesTask:
         self.weight_map = weight_map
 
 
-    def clear_object(self):
+    def remove_objects(self):
         for object in self.objects:
             p.removeBody(object)
         self.objects = []
 
 
     def reset(self):
-        self.clear_object()
+        self.remove_objects()
 
         self.init_task()
 
