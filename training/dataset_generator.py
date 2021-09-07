@@ -8,9 +8,10 @@ import numpy as np
 from ravens.dataset import Dataset
 
 from map_env.environment import Environment
-from trainning.tasks.pickandplacetask import PickAndPlaceTask
+from training import tasks
 
-flags.DEFINE_string('data_dir', '.', '')
+flags.DEFINE_string('task', 'towers-of-hanoi', '')
+flags.DEFINE_string('data_dir', './datasets', '')
 flags.DEFINE_bool('disp', False, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
@@ -19,7 +20,6 @@ flags.DEFINE_integer('steps_per_seg', 3, '')
 
 FLAGS = flags.FLAGS
 
-
 def main(unused_argv):
 
   # Initialize environment and task.
@@ -27,7 +27,7 @@ def main(unused_argv):
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
       hz=480)
-  task = PickAndPlaceTask(continous = False)
+  task = tasks.names[FLAGS.task](continous = False)
   task.mode = FLAGS.mode
 
   # Initialize scripted oracle agent and dataset.
@@ -59,6 +59,8 @@ def main(unused_argv):
       if done:
         break
     episode.append((obs, None, reward, info))
+
+    dataset.add(seed, episode)
 
 if __name__ == '__main__':
   app.run(main)
