@@ -29,6 +29,8 @@ import pybullet as p
 
 import sys
 
+from tasks.cameras import DaBai
+
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
 rootdir += "/assets"
@@ -64,6 +66,8 @@ class Task():
 		"""
 		self.mode = 'train'
 
+		self.weight_map = None
+
 		self.env = env
 
 		self.obj_type = OBJECTS
@@ -80,8 +84,9 @@ class Task():
 
 		self.objects = []
 		self.pick_threshold = 0.03  ## m
-
 		self.grip_z_offset = 0.07
+
+		self.camera = DaBai.CONFIG
 
 	def compare_object_base(self, pick_pos):
 		move_object = None
@@ -101,3 +106,17 @@ class Task():
 				continue
 
 		return move_object
+
+	def _update_weight_map(self):
+		_, depth_map, _ = self.env.render_camera(self.camera[0])
+
+		x, y = depth_map.shape[0:2]
+
+		depth_map *= 100    ### convert to cm
+		depth_map -= 1      ### minus plate height
+
+		#### resize the map to weight map ######
+		weight_map = cv2.resize(depth_map, (int(y / self.env.pixel_ratio), int(x / self.env.pixel_ratio)))
+
+		# weight_map = depth_map
+		self.weight_map = weight_map

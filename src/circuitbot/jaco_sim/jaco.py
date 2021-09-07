@@ -19,7 +19,7 @@ class Jaco:
                  reach_high=(1, 1, 1),  # Higher limit of the arm workspace.
                  randomize_arm=False,  # Whether arm initial position should be randomized.
                  urdf=jacoUrdf,  # Where to load the arm definition.
-                 use_realtime=False
+                 use_realtime=True
                  ):
         self.use_realtime = use_realtime
 
@@ -229,7 +229,7 @@ class Jaco:
                 parentLinkIndex=6,
                 childBodyUniqueId=object_id,
                 childLinkIndex=-1,
-                parentFramePosition=[-0.03, 0, 0.047],
+                parentFramePosition=[-0.03, 0, 0.04],
                 childFramePosition=[0, 0, 0],
                 jointAxis=[1, 1, 1],
                 jointType=p.JOINT_FIXED,

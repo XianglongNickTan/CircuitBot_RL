@@ -22,9 +22,11 @@ from ravens.models.attention import Attention
 from ravens.models.transport import Transport
 from ravens.models.transport_ablation import TransportPerPixelLoss
 from ravens.models.transport_goal import TransportGoal
-from ravens.tasks import cameras
+# from ravens.tasks import cameras
 from ravens.utils import utils
 import tensorflow as tf
+
+from tasks import cameras
 
 
 class TransporterAgent:
@@ -34,13 +36,18 @@ class TransporterAgent:
     self.name = name
     self.task = task
     self.total_steps = 0
-    self.crop_size = 64
+    # self.crop_size = 64
+    self.crop_size = 32
     self.n_rotations = n_rotations
-    self.pix_size = 0.003125
-    self.in_shape = (320, 160, 6)
-    self.cam_config = cameras.RealSenseD415.CONFIG
+    # self.pix_size = 0.003125
+    self.pix_size = 0.005
+    # self.in_shape = (320, 160, 6)
+    self.in_shape = (112, 160, 3)
+    # self.cam_config = cameras.RealSenseD415.CONFIG
+    self.cam_config = cameras.Dabai.CONFIG
     self.models_dir = os.path.join(root_dir, 'checkpoints', self.name)
-    self.bounds = np.array([[0.25, 0.75], [-0.5, 0.5], [0, 0.28]])
+    # self.bounds = np.array([[0.25, 0.75], [-0.5, 0.5], [0, 0.28]])
+    self.bounds = np.array([[0.1, 0.9], [-0.28, 0.28], [0, 0.3]])
 
   def get_image(self, obs):
     """Stack color and height images image."""

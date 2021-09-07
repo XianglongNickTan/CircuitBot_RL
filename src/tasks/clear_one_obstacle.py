@@ -14,8 +14,6 @@ import pybullet as p
 from tasks.task import Task
 
 
-
-
 class ClearObstaclesTask(Task):
 	""" remove one cube in the path"""
 
@@ -25,9 +23,6 @@ class ClearObstaclesTask(Task):
 		super().__init__()
 
 		self.max_steps = 30
-
-
-		self.weight_map = None
 
 
 		self.env = env
@@ -66,16 +61,7 @@ class ClearObstaclesTask(Task):
 
 
 
-	def _update_weight_map(self):
-		_, depth_map, _ = self.env.render_camera()
 
-		x, y = depth_map.shape[0:2]
-
-		#### resize the map to weight map ######
-		weight_map = cv2.resize(depth_map, (int(y / self.pixel_ratio), int(x / self.pixel_ratio)))
-
-		# weight_map = depth_map
-		self.weight_map = weight_map
 
 
 	def remove_objects(self):
@@ -122,6 +108,8 @@ class ClearObstaclesTask(Task):
 		return reward
 
 
+
+
 	def done(self):
 		return None
 
@@ -134,6 +122,7 @@ class ClearObstaclesTask(Task):
 
 		def act(obs, info):  # pylint: disable=unused-argument
 			"""Calculate action."""
+			# self._update_weight_map()
 
 			pixel_action = self.action_space.sample()
 
@@ -173,9 +162,11 @@ class ClearObstaclesTask(Task):
 			pick_pose = (np.asarray(pick_pose[0]), np.asarray(pick_pose[1]))
 
 			place_orin_quat = p.getQuaternionFromEuler(place_orin)
-			place_pose = ((place_xy[0], place_xy[1], place_z),
+			place_pose = ((place_xy[0], place_xy[1], 0.1),
 						  (place_orin_quat[0], place_orin_quat[1], place_orin_quat[2], place_orin_quat[3]))
 			place_pose = (np.asarray(place_pose[0]), np.asarray(place_pose[1]))
+
+			print(place_pose)
 
 
 
