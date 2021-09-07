@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import pybullet_data
 from gym import spaces, Env
-from gym.utils import seeding
 import os, sys
 import math
 from map_env.pathplanning.pathanalyzer import PathAnalyzer
@@ -17,22 +16,11 @@ from robot_env.jaco import Jaco
 sys.path.insert(1, "../bullet3/build_cmake/examples/pybullet")
 timeStep = 1 / 240.0
 
-rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-rootdir += "/obj_model"
-
-obj_cube = rootdir + "/cube_4.obj"
-obj_cuboid1 = rootdir + "/cuboid_4_4_8.obj"
-obj_cuboid2 = rootdir + "/cuboid_4_16.obj"
-obj_cuboid3 = rootdir + "/cuboid_8_8_4.obj"
-obj_curve = rootdir + "/curve.obj"
-obj_cylinder = rootdir + "/cylinder_4_4.obj"
-obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
 
 np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
 
-from ravens.environments.environment import Environment as Envi
 
-class Environment(Envi):
+class Environment(Env):
     def __init__(self,
                  map_row=80,
                  map_column=56,
@@ -44,7 +32,8 @@ class Environment(Envi):
                  disp=True,
                  hz=240,
                  shared_memory=False,
-                 use_egl=False
+                 use_egl=False,
+                 task=None
                  ):
 
         ### pybullet setting ###
@@ -53,10 +42,12 @@ class Environment(Envi):
         else:
             physics_client = p.connect(p.DIRECT)
 
-        self.p = PhysClientWrapper(p, physics_client)
-        self.p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        self.p.configureDebugVisualizer(self.p.COV_ENABLE_SHADOWS, 0)
-        self.p.setGravity(0, 0, -10)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
+
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        p.setPhysicsEngineParameter(enableFileCaching=0)
+        p.setTimeStep(1. / hz)
 
         ### map settings ###
         ### x - row - height
@@ -92,10 +83,49 @@ class Environment(Envi):
         self.ele_c_l = int(self.workspace_width / 2 + self.electrode_y_offset - 1)
         self.ele_c_r = int(self.workspace_width / 2 - self.electrode_y_offset)
 
-        self.ele_n_l = self._from_pixel_to_coordinate([self.ele_r_n, self.ele_c_l], self.weight_map_ratio)
-        self.ele_n_r = self._from_pixel_to_coordinate([self.ele_r_n, self.ele_c_r], self.weight_map_ratio)
-        self.ele_f_l = self._from_pixel_to_coordinate([self.ele_r_f, self.ele_c_l], self.weight_map_ratio)
-        self.ele_f_r = self._from_pixel_to_coordinate([self.ele_r_f, self.ele_c_r], self.weight_map_ratio)
+        self.ele_n_l = self.from_pixel_to_coordinate([self.ele_r_n, self.ele_c_l], self.weight_map_ratio)
+        self.ele_n_r = self.from_pixel_to_coordinate([self.ele_r_n, self.ele_c_r], self.weight_map_ratio)
+        self.ele_f_l = self.from_pixel_to_coordinate([self.ele_r_f, self.ele_c_l], self.weight_map_ratio)
+        self.ele_f_r = self.from_pixel_to_coordinate([self.ele_r_f, self.ele_c_r], self.weight_map_ratio)
+
+
+        ### fake camera ###
+        self.agent_cams = None
+
+        # color_tuple = [
+        #     spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
+        #     for config in self.agent_cams
+        # ]
+        # depth_tuple = [
+        #     spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
+        #     for config in self.agent_cams
+        # ]
+        #
+        # self.observation_space = spaces.Dict({
+        #     'color': spaces.Tuple(color_tuple),
+        #     'depth': spaces.Tuple(depth_tuple),
+        # })
+
+
+        self.position_bounds = spaces.Box(
+            low=np.array([0.25, -0.5, 0.], dtype=np.float32),
+            high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
+            shape=(3,),
+            dtype=np.float32)
+        self.action_space = spaces.Dict({
+            'pose0':
+                spaces.Tuple(
+                    (self.position_bounds,
+                     spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32))),
+            'pose1':
+                spaces.Tuple(
+                    (self.position_bounds,
+                     spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)))
+        })
+
+
+
+
 
 
 
@@ -109,93 +139,129 @@ class Environment(Envi):
             -np.inf, np.inf, shape=(self.row, self.column), dtype='float32')
 
 
-        ### sim camera settings ###
-        self.light = {
-            "diffuse": 0.4,
-            "ambient": 0.5,
-            "spec": 0.2,
-            "dir": [10, 10, 100],
-            "col": [1, 1, 1]}
-
-        camera_center = (self.workspace_height / 2 + self.plate_offset) / 100
-        camera_height = 2
-        self.viewMatrix = p.computeViewMatrix([camera_center, 0, camera_height], [camera_center, 0, -camera_height], [1, 0, 0])
-        self.nearVal = 0.01
-        self.farVal = camera_height
-        fov = math.atan((self.workspace_height / 200) / camera_height)
-        fov = fov * 180 / math.pi * 2
-        self.projMatrix = p.computeProjectionMatrixFOV(
-            fov=fov, aspect=1, nearVal=self.nearVal, farVal=self.farVal)
 
 
+        if task:
+            self.set_task(task)
 
-    def _get_sim_image(self):
+
+        self.obj_ids = {'fixed': [], 'rigid': [], 'deformable': []}
+        self.objects = []
+
+
+        ### init map ###
+        self._init_sim()
+
+        ### init jaco ###
+        self.arm = Jaco()
+
+
+    def close(self):
+        p.disconnect()
+
+
+    @property
+    def is_static(self):
+        """Return true if objects are no longer moving."""
+        v = [np.linalg.norm(p.getBaseVelocity(i)[0])
+             for i in self.obj_ids['rigid']]
+        return all(np.array(v) < 5e-3)
+
+    def add_object(self, urdf, pose, category='rigid'):
+        """List of (fixed, rigid, or deformable) objects in env."""
+        fixed_base = 1 if category == 'fixed' else 0
+        obj_id = None
+        self.obj_ids[category].append(obj_id)
+        return obj_id
+
+    def seed(self, seed=None):
+        self._random = np.random.RandomState(seed)
+        return seed
+
+    def render(self, mode='rgb_array'):
+        # Render only the color image from the first camera.
+        # Only support rgb_array for now.
+        if mode != 'rgb_array':
+            raise NotImplementedError('Only rgb_array implemented')
+        color, _, _ = self.render_camera(self.agent_cams)
+        return color
+
+
+    def render_camera(self, config):
+        """Render RGB-D image with specified camera configuration."""
+
         width, height = self.workspace_height * self.pixel_ratio, self.workspace_height * self.pixel_ratio
 
         width_clip = int((self.workspace_height - self.workspace_width) * (self.pixel_ratio / 2))
 
-        img = self.p.getCameraImage(
-            width,
-            height,
-            self.viewMatrix,
-            self.projMatrix,
-            shadow=0)
+        ### sim camera settings ###
+        camera_center = (self.workspace_height / 2 + self.plate_offset) / 100
+        camera_height = 2
+        viewMatrix = p.computeViewMatrix([camera_center, 0, camera_height], [camera_center, 0, -camera_height], [1, 0, 0])
+        nearVal = 0.01
+        farVal = camera_height
+        fov = math.atan((self.workspace_height / 200) / camera_height)
+        fov = fov * 180 / math.pi * 2
+        projMatrix = p.computeProjectionMatrixFOV(fov=fov, aspect=1, nearVal=nearVal, farVal=farVal)
 
-        rgb = np.array(img[2], dtype=np.float).reshape(height, width, 4) / 255
-        rgb[:, :, 3], rgb[:, :, 2] = rgb[:, :, 2], rgb[:, :, 0]
-        rgb[:, :, 0] = rgb[:, :, 3]
+        # Render with OpenGL camera settings.
+        _, _, color, depth, segm = p.getCameraImage(
+            width=width,
+            height=height,
+            viewMatrix=viewMatrix,
+            projectionMatrix=projMatrix,
+            shadow=0,
+            flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX,
+            # Note when use_egl is toggled, this option will not actually use openGL
+            # but EGL instead.
+            renderer=p.ER_BULLET_HARDWARE_OPENGL)
 
-        rgb_map = rgb[:, :, 0:3]
-        rgb_map = rgb_map[:, width_clip:-width_clip, :]
+        # Get color image.
+        color_image_size = (height, width, 4)
+        color = np.array(color, dtype=np.uint8).reshape(color_image_size)
+        color = color[:, :, :3]  # remove alpha channel
+        color = color[:, width_clip:-width_clip, :]
 
-        depth_map = np.array(img[3], dtype=np.float).reshape(height, width)
-        depth_map = depth_map[:, width_clip:-width_clip]
+        # Get depth image.
+        depth_image_size = (height, height)
+        depth = np.array(depth).reshape(depth_image_size)
+        depth = farVal - farVal * nearVal / (farVal - (farVal - nearVal) * depth)
+        depth = depth[:, width_clip:-width_clip]
+        depth *= 100    ### convert to cm
+        depth -= 1      ### minus plate height
 
-        ### the distance from farVal(plane) to object height (m)####
-        depth_map = self.farVal - self.farVal * self.nearVal / (self.farVal - (self.farVal - self.nearVal) * depth_map)
-        depth_map *= 100    ### convert to cm
-        depth_map -= 1      ### minus plate height
+        # Get segmentation image.
+        segm = np.uint8(segm).reshape(depth_image_size)
+        segm = segm[:, width_clip:-width_clip]
 
-        rgb_d = np.dstack((rgb_map, depth_map))
-
-        return rgb_map, depth_map, rgb_d
-
-
-    def _update_weight_map(self):
-        _, depth_map, _ = self._get_sim_image()
-
-        x, y = depth_map.shape[0:2]
-
-        #### resize the map to weight map ######
-        weight_map = cv2.resize(depth_map, (int(y / self.pixel_ratio), int(x / self.pixel_ratio)))
-
-        # weight_map = depth_map
-        self.weight_map = weight_map
+        return color, depth, segm
 
 
-    def _create_obj(self, obj, mass=None, halfExtents=None, radius=None, height=None, rgbaColor=None,
+
+
+    def create_obj(self, obj, mass=None, halfExtents=None, radius=None, height=None, rgbaColor=None,
                    basePosition=None, baseOrientation=None, use_file=None):
 
         if not use_file:
 
-            if obj == self.p.GEOM_BOX:
-                visual = self.p.createVisualShape(obj, halfExtents=halfExtents, rgbaColor=rgbaColor)
-                shape = self.p.createCollisionShape(obj, halfExtents=halfExtents)
+            if obj == p.GEOM_BOX:
+                visual = p.createVisualShape(obj, halfExtents=halfExtents, rgbaColor=rgbaColor)
+                shape = p.createCollisionShape(obj, halfExtents=halfExtents)
 
-            elif obj == self.p.GEOM_CYLINDER:
-                # visual = self.p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
-                visual = self.p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
-                # shape = self.p.createCollisionShape(obj, radius=radius, height=height)
+            elif obj == p.GEOM_CYLINDER:
+                # visual = p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
+                visual = p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
+                # shape = p.createCollisionShape(obj, radius=radius, height=height)
                 shape = -1
 
             else:
                 raise NotImplementedError()
 
         else:
-            visual = self.p.createVisualShape(obj, fileName=use_file, rgbaColor=rgbaColor)
-            shape = self.p.createCollisionShape(obj, fileName=use_file)
+            visual = p.createVisualShape(obj, fileName=use_file, rgbaColor=rgbaColor)
+            shape = p.createCollisionShape(obj, fileName=use_file)
 
-        objID = self.p.createMultiBody(baseMass=mass,
+        objID = p.createMultiBody(baseMass=mass,
                                   baseCollisionShapeIndex=shape,
                                   baseVisualShapeIndex=visual,
                                   basePosition=basePosition,
@@ -206,10 +272,10 @@ class Environment(Envi):
 
     def _init_sim(self):
 
-        self.p.loadURDF("plane.urdf")
+        p.loadURDF("plane.urdf")
 
         ### create plate ###
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.workspace_height/200, self.workspace_width/200, 0.005],
                         rgbaColor=[1, 0.90, 0.72, 1],
@@ -218,7 +284,7 @@ class Environment(Envi):
                         )
 
         ### create near electrode ###
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
@@ -226,7 +292,7 @@ class Environment(Envi):
                         baseOrientation=[0, 0, 0, 1]
                         )
 
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
@@ -234,7 +300,7 @@ class Environment(Envi):
                         baseOrientation=[0, 0, 0, 1]
                         )
 
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
@@ -242,7 +308,7 @@ class Environment(Envi):
                         baseOrientation=[0, 0, 0, 1]
                         )
 
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
@@ -252,7 +318,7 @@ class Environment(Envi):
 
 
         ### create far electrode ###
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
@@ -261,7 +327,7 @@ class Environment(Envi):
                         )
 
 
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[0, 0, 0, 1],
@@ -269,7 +335,7 @@ class Environment(Envi):
                         baseOrientation=[0, 0, 0, 1]
                         )
 
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[0.0075, 0.0075, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
@@ -278,7 +344,7 @@ class Environment(Envi):
                         )
 
 
-        self._create_obj(self.p.GEOM_BOX,
+        self.create_obj(p.GEOM_BOX,
                         mass=-1,
                         halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
                         rgbaColor=[1, 1, 1, 1],
@@ -289,27 +355,7 @@ class Environment(Envi):
 
 
 
-
-    def _check_if_out_workspace(self, object, wall):
-        P_min, P_max = self.p.getAABB(object)
-        id_tuple = self.p.getOverlappingObjects(P_min, P_max)
-
-        if len(id_tuple) > 1:
-            for ID, _ in id_tuple:
-                if ID == wall:
-                    return True
-
-                else:
-                    continue
-
-        return False
-
-
-    def _show_3d_weightmap_path(self):
-        self.analyzer.draw_map_3D()
-
-
-    def _from_pixel_to_coordinate(self, x_y, ratio):
+    def from_pixel_to_coordinate(self, x_y, ratio):
         """ ratio: 1 = 1:1 cm  2 = 1:0.5cm """
         real_x = self.workspace_height - (0.5 + x_y[0]) / ratio
         real_y = self.workspace_width / 2 - (0.5 + x_y[1]) / ratio
@@ -318,255 +364,80 @@ class Environment(Envi):
 
 
 
-    def _add_obstacles(self, top_left, bottom_right):
-
-        length = bottom_right[0] - top_left[0] + 1
-        width = bottom_right[1] - top_left[1] + 1
-
-        center_x = (bottom_right[0] + top_left[0]) / 2
-        center_y = (bottom_right[1] + top_left[1]) / 2
-
-        center = self._from_pixel_to_coordinate([center_x, center_y], self.weight_map_ratio)
-
-        ob_list = []
-
-        for i in range(length):
-            for j in range(width):
-                point = (top_left[1] + j, top_left[0] + i)
-                ob_list.append(point)
-
-        self.analyzer.set_obstacles(ob_list)
-
-        self._create_obj(self.p.GEOM_BOX,
-                        mass=-1,
-                        halfExtents=[length/200, width/200, 0.0001],
-                        rgbaColor=[1, 0, 0, 1],
-                        basePosition=[center[0], center[1], 0.01],
-                        baseOrientation=[0, 0, 0, 1]
-                        )
-
-
-    def _show_path(self, path):
-        for point in path:
-            center_x = point[1]
-            center_y = point[0]
-
-            center_x = self.workspace_height - center_x - 1
-            center_z = self.weight_map[center_x, center_y] / 100
-
-            center = self._from_pixel_to_coordinate([center_x, center_y], self.weight_map_ratio)
-
-            self._create_obj(self.p.GEOM_BOX,
-                             mass=-1,
-                             halfExtents=[0.005, 0.005, 0.0001],
-                             rgbaColor=[0, 0, 0, 1],
-                             basePosition=[center[0], center[1], center_z + 0.01],
-                             baseOrientation=[0, 0, 0, 1]
-                             )
-
-    def _add_object(self):
-        self.objects = []
-
-        object_1 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_cuboid2,
-                        rgbaColor=[1, 0, 1, 1],
-                        basePosition=[0.495, 0.075, 0.03],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-                        )
-
-        object_2 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_cuboid2,
-                        rgbaColor=[1, 0, 1, 1],
-                        basePosition=[0.6,-0.1, 0.03],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-                        )
-
-        object_3 = self._create_obj(self.p.GEOM_MESH,
-                        mass=0.01,
-                        use_file=obj_cuboid2,
-                        rgbaColor=[1, 0, 1, 1],
-                        basePosition=[0.7, 0, 0.03],
-                        baseOrientation=self.p.getQuaternionFromEuler([0,0,math.pi/2])
-                        )
-
-
-        self.objects.append(object_1)
-        self.objects.append(object_2)
-        self.objects.append(object_3)
-
-    def _compare_object_base(self, pick_pos):
-        move_object = None
-        max_z = 0
-
-        for object in self.objects:
-            base, orin = self.p.getBasePositionAndOrientation(object)
-            object_z = base[2]
-
-            if pick_pos[0] - self.pick_threshold <= base[0] <= pick_pos[0] + self.pick_threshold:
-                if pick_pos[1] - self.pick_threshold <= base[1] <= pick_pos[1] + self.pick_threshold:
-                    if object_z > max_z:
-                        max_z = object_z
-                        move_object = object
-
-            else:
-                continue
-
-        return move_object
-
-
-    def _apply_action(self, raw_action):
-        """ apply action to update the map."""
-
-        pick_xy = [raw_action[0], raw_action[1]]
-        place_xy = [raw_action[2], raw_action[3]]
-
-        pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
-        place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
-
-        if raw_action[4] == 0:
-            place_orin = [0, -math.pi, 0]
-        else:
-            place_orin = [0, -math.pi, math.pi / 2]
-
-        pick_background_height = self.weight_map[int(raw_action[0] / self.pixel_ratio), int(raw_action[1] / self.pixel_ratio)]
-        place_background_height = self.weight_map[int(raw_action[2] / self.pixel_ratio), int(raw_action[3] / self.pixel_ratio)]
-
-        move_object = self._compare_object_base(pick_xy)
-
-        if move_object:
-            base, pick_orin = self.p.getBasePositionAndOrientation(move_object)
-            pick_orin = self.p.getEulerFromQuaternion(pick_orin)
-            pick_z = base[2] + self.arm.grip_z_offset
-            pick_orin = [0, -math.pi, pick_orin[2] + self.arm.ori_offset]
-
-        else:
-            pick_z = pick_background_height / 100 + self.arm.grip_z_offset
-            pick_orin = self.arm.restOrientation
-
-        place_z = place_background_height / 100 + self.arm.grip_z_offset
-
-        pick_point = [pick_xy[0], pick_xy[1], pick_z]
-        place_point = [place_xy[0], place_xy[1], place_z]
-
-        self.arm.pick_place_object(move_object, pick_point, pick_orin, place_point, place_orin)
-
-
 
     def _get_obs(self):
-        _, _, rgb_d = self._get_sim_image()
+        # Get RGB-D camera image observations.
+        obs = {'color': (), 'depth': ()}
+        color, depth, _ = self.render_camera(self.agent_cams)
+        obs['color'] += (color,)
+        obs['depth'] += (depth,)
 
-        return rgb_d
-
-
-    def _get_reward(self):
-        reward = 0
-
-        self._update_weight_map()
-        self.analyzer.set_map(self.weight_map)
-        self.analyzer.search()
-
-        success_1, path_1, cost_1 = self.analyzer.get_result(0)
-        success_2, path_2, cost_2 = self.analyzer.get_result(1)
-
-        if success_1:
-            reward += 100
-            reward -= cost_1
-
-        if success_2:
-            reward += 100
-            reward -= cost_2
-
-        # self._show_path(path_1)
-        # self._show_path(path_2)
-
-        return reward
+        return obs
 
 
-    def _is_success(self, reward):
-        pass
+
+    @property
+    def info(self):
+        """Environment info variable with object poses, dimensions, and colors."""
+
+        # Some tasks create and remove zones, so ignore those IDs.
+        # removed_ids = []
+        # if (isinstance(self.task, tasks.names['cloth-flat-notarget']) or
+        #         isinstance(self.task, tasks.names['bag-alone-open'])):
+        #   removed_ids.append(self.task.zone_id)
+
+        info = {}  # object id : (position, rotation, dimensions)
+        for obj_ids in self.obj_ids.values():
+            for obj_id in obj_ids:
+                pos, rot = p.getBasePositionAndOrientation(obj_id)
+                dim = p.getVisualShapeData(obj_id)[0][3]
+                info[obj_id] = (pos, rot, dim)
+        return info
+
+    def set_task(self, task):
+        self.task = task
+
 
 
     def reset(self):
-        ### init map ###
-        self._init_sim()
-        self._add_object()
 
-        self.weight_map = None
-
-        ### init jaco ###
-        self.arm = Jaco(self.p)
-
-        ### init path planning ###
-        self.analyzer = PathAnalyzer()
-        self.path_length = 0
-        self._update_weight_map()
-        self.analyzer.set_map(self.weight_map)
-        self.analyzer.set_pathplan(0,[self.ele_c_l,self.ele_r_n],[self.ele_c_l,self.ele_r_f])
-        self.analyzer.set_pathplan(1,[self.ele_c_r,self.ele_r_n],[self.ele_c_r,self.ele_r_f])
-
-        for _ in range(1000):             ### stablize init
-            self.p.stepSimulation()
-
-        init_obs = self._get_obs()
-        self._update_weight_map()
-
-        return init_obs
+        p.setGravity(0, 0, -10)
 
 
-    def step(self, action):
+
+        self.task.reset()
+
+        obs, _, _, _ = self.step()
+
+        return obs
+
+
+    def step(self, action=None):
         """ Execute one time step within the environment."""
+
+        # if action is not None:
+        #     self.task.apply_action(action)
+
+        if action is not None:
+            self.task.apply_action(action)
+
+
+        while not self.is_static:
+            p.stepSimulation()
+
+        reward = self.task.reward() if action is not None else (0, {})
+        done = self.task.done()
+
+        info = {}
+
+        if done:
+            info = {"episode": {"l": self.numSteps, "r": reward}}
+
+        obs = self._get_obs()
 
         if self.numSteps == 0:
             self.startTime = time.time()
 
-        self._apply_action(action)
-
-        # for i in range(self.n_substeps):
-        #     self.p.stepSimulation()
-
         self.numSteps += 1
 
-        current_obs = self._get_obs()
-
-        info = {}
-        reward = self._get_reward()
-        done = self._is_success(reward) or self.numSteps > self.doneAfter
-        if done:
-            info = {"episode": {"l": self.numSteps, "r": reward}}
-
-        return current_obs, reward, done, info
-
-
-    def render(self, mode="human"):
-        rgb, _, _ = self._get_sim_image()
-        if mode == "rgb_array":
-            return rgb
-
-        elif mode == "human":
-            cv2.imshow("test", rgb)
-            cv2.waitKey(1)
-
-
-class PhysClientWrapper:
-    """
-    This is used to make sure each BulletRobotEnv has its own physicsClient and
-    they do not cross-communicate.
-    """
-
-    def __init__(self, other, physics_client_id):
-        self.other = other
-        self.physicsClientId = physics_client_id
-
-    def __getattr__(self, name):
-        if hasattr(self.other, name):
-            attr = getattr(self.other, name)
-            if callable(attr):
-                return lambda *args, **kwargs: self._wrap(attr, args, kwargs)
-            return attr
-        raise AttributeError(name)
-
-    def _wrap(self, func, args, kwargs):
-        kwargs["physicsClientId"] = self.physicsClientId
-        return func(*args, **kwargs)
+        return obs, reward, done, info

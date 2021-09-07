@@ -1,5 +1,5 @@
-from trainning.tasks.pickandplacetask import PickAndPlaceTask
+from training.tasks.clear_obstacles import ClearObstaclesTask
 
 names = {
-    'pickandplacetask': PickAndPlaceTask
+    'ClearObstaclesTask': ClearObstaclesTask
 }

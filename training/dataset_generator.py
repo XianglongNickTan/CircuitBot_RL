@@ -8,10 +8,9 @@ import numpy as np
 from ravens.dataset import Dataset
 
 from map_env.environment import Environment
-from training import tasks
+from training.tasks.clear_obstacles import ClearObstaclesTask
 
-flags.DEFINE_string('task', 'towers-of-hanoi', '')
-flags.DEFINE_string('data_dir', './datasets', '')
+flags.DEFINE_string('data_dir', '.', '')
 flags.DEFINE_bool('disp', False, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
@@ -20,6 +19,7 @@ flags.DEFINE_integer('steps_per_seg', 3, '')
 
 FLAGS = flags.FLAGS
 
+
 def main(unused_argv):
 
   # Initialize environment and task.
@@ -27,11 +27,11 @@ def main(unused_argv):
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
       hz=480)
-  task = tasks.names[FLAGS.task](continous = False)
+  task = ClearObstaclesTask(env)
   task.mode = FLAGS.mode
 
   # Initialize scripted oracle agent and dataset.
-  agent = task.get_discrete_oracle_agent(env)
+  agent = task.get_discrete_oracle_agent()
   dataset = Dataset(os.path.join(FLAGS.data_dir, f'{FLAGS.task}-{task.mode}'))
 
   # Train seeds are even and test seeds are odd.
@@ -59,8 +59,6 @@ def main(unused_argv):
       if done:
         break
     episode.append((obs, None, reward, info))
-
-    dataset.add(seed, episode)
 
 if __name__ == '__main__':
   app.run(main)

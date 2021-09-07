@@ -36,7 +36,7 @@ def get_heightmap(points, colors, bounds, pixel_size):
   """Get top-down (z-axis) orthographic heightmap image from 3D pointcloud.
 
   Args:
-    points: HxWx3 float array of 3D points in world coordinates.
+    points: HxWx3 float array of 3D points in world coordinates.z
     colors: HxWx3 uint8 array of values in range 0-255 aligned with points.
     bounds: 3x2 float array of values (rows: X,Y,Z; columns: min,max) defining
       region in 3D space to generate heightmap in world coordinates.

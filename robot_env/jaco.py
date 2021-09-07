@@ -3,17 +3,17 @@ import os
 import sys
 import numpy as np
 import time
+import pybullet as p
 
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-jacoUrdf = rootdir + "/jaco_description/urdf/j2n6s300_twofingers.urdf"
+jacoUrdf = rootdir + "robot_env/jaco_description/urdf/j2n6s300_twofingers.urdf"
 
 np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
 
 
 class Jaco:
     def __init__(self,
-                 p,  # Simulator object
                  spawn_pos=(0, 0, 0),  # Position where to spawn the arm.
                  reach_low=(-1, -1, 0),  # Lower limit of the arm workspace (might be used for safety).
                  reach_high=(1, 1, 1),  # Higher limit of the arm workspace.
@@ -21,16 +21,15 @@ class Jaco:
                  urdf=jacoUrdf,  # Where to load the arm definition.
                  use_realtime=False
                  ):
-        self.p = p
         self.use_realtime = use_realtime
 
         ## load urdf
-        self.armId = self.p.loadURDF(
+        self.armId = p.loadURDF(
             urdf,
             basePosition=spawn_pos,
-            baseOrientation=self.p.getQuaternionFromEuler([0, 0, -math.pi]),
+            baseOrientation=p.getQuaternionFromEuler([0, 0, -math.pi]),
             useFixedBase=1)
-            # flags=self.p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
+            # flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
 
 
         ## workspace
@@ -40,7 +39,7 @@ class Jaco:
 
 
         ## joint info
-        self.numJoints = self.p.getNumJoints(self.armId)
+        self.numJoints = p.getNumJoints(self.armId)
         assert self.numJoints
         self.jointVelocities = [0] * self.numJoints
 
@@ -50,7 +49,7 @@ class Jaco:
         self.gripperClose = 1.1
         self.gripperConstraints = []
         self.FingerAngle = [
-            self.p.getJointState(self.armId, i)[0] for i in [7, 9]
+            p.getJointState(self.armId, i)[0] for i in [7, 9]
         ]
 
 
@@ -80,13 +79,13 @@ class Jaco:
             init_pos = self.IKInfo["restPoses"]
 
         for i in range(len(self.IKInfo["restPoses"])):
-            self.p.resetJointState(self.armId, i, init_pos[i])
+            p.resetJointState(self.armId, i, init_pos[i])
 
-        self.p.resetJointState(self.armId, 7, self.gripperOpen)    # finger 1 base joint
-        self.p.resetJointState(self.armId, 9, self.gripperOpen)    # finger 2 base joint
+        p.resetJointState(self.armId, 7, self.gripperOpen)    # finger 1 base joint
+        p.resetJointState(self.armId, 9, self.gripperOpen)    # finger 2 base joint
 
         grip_pos = np.array(
-            self.p.getLinkState(self.armId, 6, computeLinkVelocity=1)[0])
+            p.getLinkState(self.armId, 6, computeLinkVelocity=1)[0])
 
         self.goalPosition = grip_pos
 
@@ -95,7 +94,7 @@ class Jaco:
     def get_ik_information(self):
         """ Finds the values for the IK solver. """
         joint_information = list(
-            map(lambda i: self.p.getJointInfo(self.armId, i),
+            map(lambda i: p.getJointInfo(self.armId, i),
                 range(self.numJoints)))
         self.IKInfo = {}
         assert all(
@@ -119,23 +118,23 @@ class Jaco:
 
     def get_endEffector_pos(self):
         grip_pos = np.array(
-            self.p.getLinkState(self.armId, 6, computeLinkVelocity=1)[0])
+            p.getLinkState(self.armId, 6, computeLinkVelocity=1)[0])
         grip_orin = np.array(
-            self.p.getLinkState(self.armId, 6, computeLinkVelocity=1)[1])
+            p.getLinkState(self.armId, 6, computeLinkVelocity=1)[1])
 
         return grip_pos, grip_orin
 
     def get_joint_poses(self):
         """ Returns current joint poses."""
-        return [self.p.getJointState(self.armId, i)[0] for i in range(10)]
+        return [p.getJointState(self.armId, i)[0] for i in range(10)]
 
 
     def compute_ik_poses(self):
         """ Use the IK solver to compute goal joint poses to achieve IK goal."""
-        joint_poses = self.p.calculateInverseKinematics(
+        joint_poses = p.calculateInverseKinematics(
             self.armId,
             targetPosition=self.goalPosition,
-            targetOrientation=self.p.getQuaternionFromEuler(
+            targetOrientation=p.getQuaternionFromEuler(
                 self.goalOrientation),
             **self.IKInfo)
         return joint_poses
@@ -146,10 +145,10 @@ class Jaco:
 
         # Set all body joints.
         for i in range(len(self.joint_poses)):
-            self.p.setJointMotorControl2(
+            p.setJointMotorControl2(
                 bodyIndex=self.armId,
                 jointIndex=i,
-                controlMode=self.p.POSITION_CONTROL,
+                controlMode=p.POSITION_CONTROL,
                 targetPosition=self.joint_poses[i],
                 targetVelocity=0,
                 force=500,
@@ -157,7 +156,7 @@ class Jaco:
                 velocityGain=1)
 
         self.goalReached = all(map(
-                lambda joint: abs(self.p.getJointState(self.armId, joint)[
+                lambda joint: abs(p.getJointState(self.armId, joint)[
                               0] - self.joint_poses[joint]) < self.goalEpsilon, range(6)
             )
         )
@@ -166,7 +165,7 @@ class Jaco:
         """Step the simulation."""
         while not self.goalReached:
             self.check_goal_reach()
-            self.p.stepSimulation()
+            p.stepSimulation()
             if self.use_realtime:
                 time.sleep(1. / 240.)     # set time interval for visulaization
 
@@ -174,13 +173,13 @@ class Jaco:
     def check_goal_reach(self):
 
         self.goalReached = all(map(
-                lambda joint: abs(self.p.getJointState(self.armId, joint)[
+                lambda joint: abs(p.getJointState(self.armId, joint)[
                               0] - self.joint_poses[joint]) < self.goalEpsilon, range(6)
             )
         )
 
         # gripper_reached = [
-        #     abs(self.p.getJointState(self.armId, i)[0] - self.finger_angle) <
+        #     abs(p.getJointState(self.armId, i)[0] - self.finger_angle) <
         #     self.goalEpsilon for i in [7, 9]
         # ]
         #
@@ -194,19 +193,19 @@ class Jaco:
 
         finger_angle = angle
 
-        self.p.setJointMotorControl2(
+        p.setJointMotorControl2(
             bodyIndex=self.armId,
             jointIndex=7,
-            controlMode=self.p.POSITION_CONTROL,
+            controlMode=p.POSITION_CONTROL,
             targetPosition=finger_angle,
             targetVelocity=0,
             force=500,
             positionGain=0.03,
             velocityGain=1)
-        self.p.setJointMotorControl2(
+        p.setJointMotorControl2(
             bodyIndex=self.armId,
             jointIndex=9,
-            controlMode=self.p.POSITION_CONTROL,
+            controlMode=p.POSITION_CONTROL,
             targetPosition=finger_angle,
             targetVelocity=0,
             force=500,
@@ -214,7 +213,7 @@ class Jaco:
             velocityGain=1)
 
         # gripper_reached = [
-        #     abs(self.p.getJointState(self.armId, i)[0] - self.finger_angle) <
+        #     abs(p.getJointState(self.armId, i)[0] - self.finger_angle) <
         #     self.goalEpsilon for i in [7, 9]
         # ]
         #
@@ -226,7 +225,7 @@ class Jaco:
             return
 
         self.gripperConstraints.append(
-            self.p.createConstraint(
+            p.createConstraint(
                 parentBodyUniqueId=self.armId,
                 parentLinkIndex=6,
                 childBodyUniqueId=object_id,
@@ -234,8 +233,8 @@ class Jaco:
                 parentFramePosition=[-0.03, 0, 0.047],
                 childFramePosition=[0, 0, 0],
                 jointAxis=[1, 1, 1],
-                jointType=self.p.JOINT_FIXED,
-                parentFrameOrientation=self.p.getQuaternionFromEuler([0, -math.pi, self.ori_offset])
+                jointType=p.JOINT_FIXED,
+                parentFrameOrientation=p.getQuaternionFromEuler([0, -math.pi, self.ori_offset])
             ))
 
 
@@ -243,7 +242,7 @@ class Jaco:
         if not self.gripperConstraints:
             return
         for constraint in self.gripperConstraints:
-            self.p.removeConstraint(constraint)
+            p.removeConstraint(constraint)
         self.gripperConstraints = []
 
 
@@ -255,7 +254,7 @@ class Jaco:
         # self.step_simulation()
 
         for _ in range(150):
-            self.p.stepSimulation()
+            p.stepSimulation()
             if self.use_realtime:
                 time.sleep(1. / 240.)     # set time interval for visulaization
 
@@ -264,7 +263,7 @@ class Jaco:
         self.gripper_control(self.gripperClose)
         # self.step_simulation()
         for _ in range(50):
-            self.p.stepSimulation()
+            p.stepSimulation()
             if self.use_realtime:
                 time.sleep(1. / 240.)     # set time interval for visulaization
 
@@ -272,7 +271,7 @@ class Jaco:
         self.gripper_control(self.gripperOpen)
         # self.step_simulation()
         for _ in range(50):
-            self.p.stepSimulation()
+            p.stepSimulation()
             if self.use_realtime:
                 time.sleep(1. / 240.)     # set time interval for visulaization
 
