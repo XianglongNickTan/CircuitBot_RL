@@ -7,11 +7,12 @@ import numpy as np
 
 from ravens.dataset import Dataset
 
-from map_env.environment import Environment
-from training.tasks.clear_obstacles import ClearObstaclesTask
+from env.environment import Environment
+from tasks.clear_one_obstacle import ClearObstaclesTask
 
+flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
 flags.DEFINE_string('data_dir', './datasets', '')
-flags.DEFINE_bool('disp', False, '')
+flags.DEFINE_bool('disp', True, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
 flags.DEFINE_integer('n', 1000, '')

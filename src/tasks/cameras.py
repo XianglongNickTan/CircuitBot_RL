@@ -18,8 +18,9 @@
 import numpy as np
 import pybullet as p
 
+from tasks.task import Task
 
-class RealSenseD415():
+class RealSenseD415(Task):
   """Default configuration with 3 RealSense RGB-D cameras."""
 
   # Mimic RealSense D415 RGB-D camera parameters.

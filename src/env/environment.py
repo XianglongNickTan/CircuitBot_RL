@@ -8,7 +8,7 @@ import sys
 import math
 
 
-from robot_env.jaco import Jaco
+from circuitbot.jaco_sim.jaco import Jaco
 
 
 sys.path.insert(1, "../bullet3/build_cmake/examples/pybullet")

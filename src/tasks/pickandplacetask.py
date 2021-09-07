@@ -1,6 +1,6 @@
 import collections
 import numpy as np
-from ravens.tasks.task import Task
+from tasks.task import Task
 from ravens.utils import utils
 
 import pybullet as p

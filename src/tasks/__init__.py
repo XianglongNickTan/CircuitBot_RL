@@ -1,4 +1,4 @@
-from training.tasks.clear_obstacles import ClearObstaclesTask
+from tasks.clear_obstacles import ClearObstaclesTask
 
 names = {
     'ClearObstaclesTask': ClearObstaclesTask

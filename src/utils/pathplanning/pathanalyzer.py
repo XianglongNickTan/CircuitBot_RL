@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LightSource
 from matplotlib import cm
 
-from map_env.pathplanning.map import Map
-from map_env.pathplanning.pathplanner import PathPlanner
+from utils.pathplanning.map import Map
+from utils.pathplanning.pathplanner import PathPlanner
 
 class PathAnalyzer:
     def __init__(self):

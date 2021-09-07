@@ -7,7 +7,7 @@ import pybullet as p
 
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-jacoUrdf = rootdir + "/robot_env/jaco_description/urdf/j2n6s300_twofingers.urdf"
+jacoUrdf = rootdir + "/circuitbot/jaco_sim/jaco_description/urdf/j2n6s300_twofingers.urdf"
 
 np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
 

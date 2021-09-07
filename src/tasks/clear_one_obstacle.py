@@ -1,19 +1,20 @@
 import collections
 import numpy as np
-from training.tasks.task import Task
+from tasks.task import Task
 # from ravens.utils import utils
 import math
-from training import utils
+from utils import utils
 from gym import spaces
 import cv2
-from map_env.pathplanning.pathanalyzer import PathAnalyzer
+from utils.pathplanning.pathanalyzer import PathAnalyzer
 
 import os, sys
 import pybullet as p
 
+from tasks.task import Task
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-rootdir += "/map_env/obj_model"
+rootdir += "/assets"
 
 obj_cube = rootdir + "/cube_4.obj"
 obj_cuboid1 = rootdir + "/cuboid_4_4_8.obj"
@@ -24,7 +25,7 @@ obj_cylinder = rootdir + "/cylinder_4_4.obj"
 obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
 
 
-class ClearObstaclesTask:
+class ClearObstaclesTask(Task):
     """ remove one cube in the path"""
 
     def __init__(self,
