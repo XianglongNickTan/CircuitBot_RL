@@ -10,7 +10,7 @@ from ravens.dataset import Dataset
 from map_env.environment import Environment
 from training.tasks.clear_obstacles import ClearObstaclesTask
 
-flags.DEFINE_string('data_dir', '.', '')
+flags.DEFINE_string('data_dir', './datasets', '')
 flags.DEFINE_bool('disp', False, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
@@ -59,6 +59,8 @@ def main(unused_argv):
       if done:
         break
     episode.append((obs, None, reward, info))
+
+    dataset.add(seed, episode)
 
 if __name__ == '__main__':
   app.run(main)
