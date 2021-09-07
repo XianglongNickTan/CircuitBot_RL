@@ -49,7 +49,7 @@ class Environment(Env):
 
         ### map settings ###
         ### x - row - height
-        ### y - colomn - width
+        ### y - colomn - widthz
         self.plate_offset = plate_offset
         self.row = map_row
         self.column = map_column
@@ -59,7 +59,6 @@ class Environment(Env):
 
 
         ### robot pick place settings ###
-        self.pick_threshold = 0.025     ## m
         self.reach_x = [0.30, 0.68]
         self.reach_y = [-0.2, 0.2]
         self.reach_z = [0.06, 0.4]
@@ -416,8 +415,8 @@ class Environment(Env):
         # if action is not None:
         #     self.task.apply_action(action)
 
-        # if action is not None:
-        #     self.task.apply_action(action)
+        if action is not None:
+            self.task.apply_action(action)
 
 
         while not self.is_static:

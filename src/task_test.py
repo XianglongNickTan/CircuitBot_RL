@@ -7,8 +7,8 @@ import numpy as np
 
 from ravens.dataset import Dataset
 
-from map_env.environment import Environment
-from training.tasks.clear_one_obstacle import ClearObstaclesTask
+from env.environment import Environment
+from tasks.clear_one_obstacle import ClearObstaclesTask
 
 
 
@@ -29,7 +29,7 @@ def main(unused_argv):
   env = Environment(
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
-      hz=480)
+      hz=240)
   task = ClearObstaclesTask(env)
   task.mode = FLAGS.mode
 

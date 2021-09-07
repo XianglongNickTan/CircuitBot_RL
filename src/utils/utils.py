@@ -9,63 +9,43 @@ plate_offset = 10
 
 
 def apply_action(self, raw_action):
-    """ apply action to update the map."""
+	""" apply action to update the map."""
 
-    pick_xy = [raw_action[0], raw_action[1]]
-    place_xy = [raw_action[2], raw_action[3]]
+	pick_xy = [raw_action[0], raw_action[1]]
+	place_xy = [raw_action[2], raw_action[3]]
 
-    pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
-    place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
+	pick_xy = self._from_pixel_to_coordinate(pick_xy, self.pixel_ratio)
+	place_xy = self._from_pixel_to_coordinate(place_xy, self.pixel_ratio)
 
-    if raw_action[4] == 0:
-        place_orin = [0, -math.pi, 0]
-    else:
-        place_orin = [0, -math.pi, math.pi / 2]
+	if raw_action[4] == 0:
+		place_orin = [0, -math.pi, 0]
+	else:
+		place_orin = [0, -math.pi, math.pi / 2]
 
-    pick_background_height = self.weight_map[int(raw_action[0] / self.pixel_ratio), int(raw_action[1] / self.pixel_ratio)]
-    place_background_height = self.weight_map[int(raw_action[2] / self.pixel_ratio), int(raw_action[3] / self.pixel_ratio)]
+	pick_background_height = self.weight_map[int(raw_action[0] / self.pixel_ratio), int(raw_action[1] / self.pixel_ratio)]
+	place_background_height = self.weight_map[int(raw_action[2] / self.pixel_ratio), int(raw_action[3] / self.pixel_ratio)]
 
-    move_object = self._compare_object_base(pick_xy)
+	move_object = self._compare_object_base(pick_xy)
 
-    if move_object:
-        base, pick_orin = p.getBasePositionAndOrientation(move_object)
-        pick_orin = p.getEulerFromQuaternion(pick_orin)
-        pick_z = base[2] + self.arm.grip_z_offset
-        pick_orin = [0, -math.pi, pick_orin[2] + self.arm.ori_offset]
+	if move_object:
+		base, pick_orin = p.getBasePositionAndOrientation(move_object)
+		pick_orin = p.getEulerFromQuaternion(pick_orin)
+		pick_z = base[2] + self.arm.grip_z_offset
+		pick_orin = [0, -math.pi, pick_orin[2] + self.arm.ori_offset]
 
-    else:
-        pick_z = pick_background_height / 100 + self.arm.grip_z_offset
-        pick_orin = self.arm.restOrientation
+	else:
+		pick_z = pick_background_height / 100 + self.arm.grip_z_offset
+		pick_orin = self.arm.restOrientation
 
-    place_z = place_background_height / 100 + self.arm.grip_z_offset
+	place_z = place_background_height / 100 + self.arm.grip_z_offset
 
-    pick_point = [pick_xy[0], pick_xy[1], pick_z]
-    place_point = [place_xy[0], place_xy[1], place_z]
+	pick_point = [pick_xy[0], pick_xy[1], pick_z]
+	place_point = [place_xy[0], place_xy[1], place_z]
 
-    self.arm.pick_place_object(move_object, pick_point, pick_orin, place_point, place_orin)
-
-
+	self.arm.pick_place_object(move_object, pick_point, pick_orin, place_point, place_orin)
 
 
 
-def compare_object_base(self, pick_pos):
-	move_object = None
-	max_z = 0
-
-	for object in self.objects:
-		base, orin = p.getBasePositionAndOrientation(object)
-		object_z = base[2]
-
-		if pick_pos[0] - self.pick_threshold <= base[0] <= pick_pos[0] + self.pick_threshold:
-			if pick_pos[1] - self.pick_threshold <= base[1] <= pick_pos[1] + self.pick_threshold:
-				if object_z > max_z:
-					max_z = object_z
-					move_object = object
-
-		else:
-			continue
-
-	return move_object
 
 
 def check_if_out_workspace(object, wall):

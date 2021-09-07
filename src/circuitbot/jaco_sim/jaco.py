@@ -56,15 +56,15 @@ class Jaco:
         ### inter pos control ###
         self.lift_pos = [0.5, 0, 0.45]
         self.rest_pos = [0.12, 0, 0.4]
-        self.grip_z_offset = 0.07
         # self.ori_offset = 0.2
         self.ori_offset = 0
         # self.restOrientation = [0, -math.pi, 0.2]
-        self.restOrientation = [0, -math.pi, 0.2]
+        # self.restOrientation = [0, -math.pi, 0.2]
+        self.restOrientation = p.getQuaternionFromEuler([0, -math.pi, 0.2])
 
 
         ## goal variables ##
-        self.goalOrientation = [0, -math.pi, 0]
+        self.goalOrientation = p.getQuaternionFromEuler([0, -math.pi, 0])
 
         self.goalReached = False
         self.goalEpsilon = 0.1
@@ -134,8 +134,7 @@ class Jaco:
         joint_poses = p.calculateInverseKinematics(
             self.armId,
             targetPosition=self.goalPosition,
-            targetOrientation=p.getQuaternionFromEuler(
-                self.goalOrientation),
+            targetOrientation=self.goalOrientation,
             **self.IKInfo)
         return joint_poses
 

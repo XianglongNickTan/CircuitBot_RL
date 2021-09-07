@@ -5,6 +5,11 @@
       <sourceFolder url="file://$MODULE_DIR$/map_env" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/map_env/pathplanning" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/robot_env" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/circuitbot" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/env" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/ravens" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/tasks" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/utils" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
