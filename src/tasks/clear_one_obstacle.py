@@ -22,7 +22,7 @@ class ClearObstaclesTask(Task):
 
 		super().__init__()
 
-		self.max_steps = 3
+		self.max_steps = 1
 
 		self.env = env
 
