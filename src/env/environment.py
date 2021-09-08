@@ -212,16 +212,11 @@ class Environment(Env):
 		segm = np.uint8(segm).reshape(depth_image_size)
 		# segm = segm[:, width_clip:-width_clip]
 
-		depth_image_size = (config['image_size'][0], config['image_size'][1], 1)
-
-		depth.reshape(depth_image_size)
-
-		rgb_d = np.dstack((color, depth))
 
 		cv2.imshow('test', color)
 		cv2.waitKey(1)
 
-		return color, depth, segm, rgb_d
+		return color, depth, segm
 
 
 
@@ -255,11 +250,11 @@ class Environment(Env):
 	def _get_obs(self):
 		# Get RGB-D camera image observations.
 		obs = {'color': (), 'depth': ()}
-		color, depth, _, rgb_d = self.render_camera(self.agent_cams[0])
+		color, depth, _ = self.render_camera(self.agent_cams[0])
 		obs['color'] += (color,)
 		obs['depth'] += (depth,)
 
-		return rgb_d, depth
+		return obs, depth
 
 
 	@property

@@ -62,7 +62,11 @@ class TransporterAgent:
     # Get color and height maps from RGB-D images.
     # cmap, hmap = utils.get_fused_heightmap(
     #     obs, self.cam_config, self.bounds, self.pix_size)
-    img = obs
+
+    color = obs['color']
+    depth = obs['depth']
+
+    img = np.dstack((color, depth))
     assert img.shape == self.in_shape, img.shape
     return img
 
