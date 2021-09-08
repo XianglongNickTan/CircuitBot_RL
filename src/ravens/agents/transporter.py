@@ -42,7 +42,8 @@ class TransporterAgent:
     # self.pix_size = 0.003125
     self.pix_size = 0.0025
     # self.in_shape = (320, 160, 6)
-    self.in_shape = (224, 320, 3)
+    # self.in_shape = (224, 320, 3)
+    self.in_shape = (320, 224, 4)
     # self.cam_config = cameras.RealSenseD415.CONFIG
     self.cam_config = cameras.DaBai.CONFIG
     self.models_dir = os.path.join(root_dir, 'checkpoints', self.name)
@@ -59,10 +60,9 @@ class TransporterAgent:
     #   assert input_image.shape[2] == 12, input_image.shape
 
     # Get color and height maps from RGB-D images.
-    cmap, hmap = utils.get_fused_heightmap(
-        obs, self.cam_config, self.bounds, self.pix_size)
-    img = np.concatenate((cmap,
-                          hmap[Ellipsis, None]), axis=2)
+    # cmap, hmap = utils.get_fused_heightmap(
+    #     obs, self.cam_config, self.bounds, self.pix_size)
+    img = obs
     assert img.shape == self.in_shape, img.shape
     return img
 
