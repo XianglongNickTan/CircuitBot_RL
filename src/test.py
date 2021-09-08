@@ -29,7 +29,7 @@ from tasks.clear_one_obstacle import ClearObstaclesTask
 import tensorflow as tf
 
 flags.DEFINE_string('root_dir', '.', '')
-flags.DEFINE_string('data_dir', '.', '')
+flags.DEFINE_string('data_dir', './datasets', '')
 flags.DEFINE_bool('disp', True, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
