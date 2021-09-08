@@ -69,13 +69,8 @@ class ClearObstaclesTask(Task):
 
 	def reset(self):
 		self.remove_objects()
-
 		self.init_task()
-
 		self.init_weight_map()
-
-
-
 		# self.analyzer.draw_map_3D()
 
 
@@ -98,8 +93,6 @@ class ClearObstaclesTask(Task):
 			reward -= cost_2
 
 		return reward
-
-
 
 
 	def done(self):

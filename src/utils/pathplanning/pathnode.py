@@ -13,8 +13,6 @@ class PathNode(Node):
         self.x = x
         self.y = y
         self.z = z
-
-        self.close_list = path_planner.close_list
         
         self.cost = cost
         self.pred = pred
@@ -26,6 +24,9 @@ class PathNode(Node):
         self.reached = False
 
         self.node_searched = 0
+
+    def get_close_list(self):
+        return self.path_planner.close_list
 
     def get_map(self):
         return self.path_planner.get_map()
@@ -39,6 +40,8 @@ class PathNode(Node):
         
         self.expand(open_list)
         result = start_node
+
+        count = 0
         
         while not open_list.is_empty():
             node_to_open = open_list.top()
@@ -46,6 +49,9 @@ class PathNode(Node):
                 result = node_to_open
                 reached = True
                 break
+            if count > 80:
+                break
+            count += 1
             self.expand(open_list)
             # print(node_to_open.parent.x, node_to_open.parent.y)
 
@@ -119,11 +125,11 @@ class PathNode(Node):
                                         self.calc_pred(new_pos), node_to_open)
                     open_list.push(new_node)
 
-        self.close_list[node_to_open.y, node_to_open.x] = True
+        self.get_close_list()[node_to_open.y, node_to_open.x] = True
         self.node_searched += 1
     
     def in_close_list(self, new_pos):
-        return self.close_list[new_pos.y, new_pos.x] == True
+        return self.get_close_list()[new_pos.y, new_pos.x] == True
 
 class NodeResult():
     def __init__(self, success, path = [], cost = -1):

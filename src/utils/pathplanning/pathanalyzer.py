@@ -13,7 +13,7 @@ class PathAnalyzer:
         self.map = Map()
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.result = [PathResult(), PathResult()]
-        self.min_slope = 0.2
+        self.min_slope = 0.3
         self.max_slope = 0.7
 
     def set_map(self, array):
@@ -101,6 +101,31 @@ class PathAnalyzer:
         ax.scatter(Xp2,Yp2,Zp2,c='b',s=200)
 
         plt.show()
+
+    def draw_map_3D_only(self):
+        x = np.arange(0, self.map.width, 1)
+        y = np.arange(0, self.map.height, 1)
+        X, Y = np.meshgrid(x, y)
+        Z = self.map.dem_map
+        
+        fig,ax = plt.subplots(subplot_kw=dict(projection='3d'),figsize=(12,10))
+        ax.plot_wireframe(X, Y, Z, cmap=plt.cm.gist_earth)
+
+        diffs = np.absolute(self.map.dem_map - 0)
+
+        temp = np.where((self.min_slope < diffs) & (diffs < self.max_slope))
+        slope_pts = np.transpose(temp)
+
+        slope_ptsT = np.transpose(slope_pts)
+        Xp3 = slope_ptsT[1]
+        Yp3 = slope_ptsT[0]
+        Zp3 = [self.map.dem_map[pos[0], pos[1]] for pos in slope_pts]
+
+        ax.scatter(Xp3,Yp3,Zp3,c='r',s=800)
+
+        plt.show()
+
+        
 
 class PathResult():
     def __init__(self, success = False, path = [], cost = -1):
