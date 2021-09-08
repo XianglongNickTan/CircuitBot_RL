@@ -53,7 +53,7 @@ class PathPlanner:
         result = start_node
         while not self.open_list.is_empty():
             node_to_open = self.open_list.top()
-            if node_to_open == self.destination:
+            if node_to_open.x == self.destination.x and node_to_open.y == self.destination.y:
                 result = node_to_open
                 self.reached = True
                 break
@@ -117,12 +117,12 @@ class PathPlanner:
     def get_new_nodes(self, location):
         pos_list = []
 
-        if location.z == self.destination.z:
+        if abs(location.z - self.destination.z) < self.analyzer.min_slope:
             pos_list.append((self.get_map().get_coordination(self.destination.x, self.destination.y), False))
 
         vals = self.get_map().dem_map - location.z
-        temps = np.where(self.analyzer.min_slope < np.absolute(vals))
-        temps = np.where(np.absolute(temps) < self.analyzer.max_slope)
+        diffs = np.absolute(vals)
+        temps = np.where((self.analyzer.min_slope < diffs) & (diffs < self.analyzer.max_slope))
         slope_pts = np.flip(np.transpose(temps), axis = 1)
 
         count = 0
@@ -138,6 +138,7 @@ class PathPlanner:
                 continue
             count += 1
             pos_list.append((self.get_map().get_coordination(stop.x, stop.y), True))
+
         return pos_list
     
     def find_slope_destination(self, slope_pt, isStepOn):
