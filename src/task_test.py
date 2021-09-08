@@ -8,6 +8,7 @@ import numpy as np
 from ravens.dataset import Dataset
 
 from env.environment import Environment
+# from tasks.clear_obstacles import ClearObstaclesTask
 from tasks.clear_obstacles import ClearObstaclesTask
 
 

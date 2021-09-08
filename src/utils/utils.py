@@ -8,11 +8,37 @@ import numpy as np
 from transforms3d import euler
 
 import pybullet as p
-
+import os, sys
 
 workspace_width = 56
 workspace_height = 80
 plate_offset = 10
+
+
+rootdir = os.path.dirname(sys.modules['__main__'].__file__)
+rootdir += "/assets"
+
+obj_cube = rootdir + "/cube_4.obj"
+obj_cuboid1 = rootdir + "/cuboid_4_4_8.obj"
+obj_cuboid2 = rootdir + "/cuboid_4_16.obj"
+obj_cuboid3 = rootdir + "/cuboid_8_8_4.obj"
+obj_curve = rootdir + "/curve.obj"
+obj_cylinder = rootdir + "/cylinder_4_4.obj"
+obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
+
+
+OBJECTS = {
+	'cube': obj_cube,
+	'cuboid1': obj_cuboid1,
+	'cuboid2': obj_cuboid2,
+	'cuboid3': obj_cuboid3,
+	'curve': obj_curve,
+	'cylinder': obj_cylinder,
+	'triangular_prism': obj_triangular_prism
+}
+
+
+
 
 
 

@@ -5,7 +5,6 @@ import numpy as np
 import pybullet_data
 from gym import spaces, Env
 import sys
-import math
 
 
 from tasks.cameras import DaBai
@@ -271,11 +270,16 @@ class Environment(Env):
 
 		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
 
-		self.task.reset()
+		# self.task.reset()
 
 		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 
-		obs, _, _, _ = self.step()
+		# obs, _, _, _ = self.step()
+
+		for _ in range(100):
+			p.stepSimulation()
+
+		obs, _ = self._get_obs()
 
 		return obs
 
@@ -283,8 +287,6 @@ class Environment(Env):
 	def step(self, action=None):
 		""" Execute one time step within the environment."""
 
-		# if action is not None:
-		#     self.task.apply_action(action)
 
 		if action is not None:
 			self.task.apply_action(action)

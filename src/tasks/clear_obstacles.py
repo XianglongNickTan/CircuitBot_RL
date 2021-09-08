@@ -4,7 +4,6 @@ import random
 import numpy as np
 from tasks.task import Task
 # from ravens.utils import utils
-import math
 from utils import utils
 from gym import spaces
 import cv2
@@ -35,7 +34,6 @@ class ClearObstaclesTask(Task):
 		# 	dtype=np.int)
 
 
-
 	def add_obstacles(self):
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
@@ -43,7 +41,7 @@ class ClearObstaclesTask(Task):
 									rgbaColor=utils.COLORS['red'],
 									basePosition=[0.325,
 									              0.15 * (2 * random.random() - 1), 0.03],
-									baseOrientation=p.getQuaternionFromEuler([0, 0, math.pi/2]),
+									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
 		                            object_list=self.objects
 									)
 		#
@@ -53,7 +51,7 @@ class ClearObstaclesTask(Task):
 									rgbaColor=utils.COLORS['red'],
 									basePosition=[0.475,
 									              0.15 * (2 * random.random() - 1), 0.03],
-									baseOrientation=p.getQuaternionFromEuler([0, 0, math.pi/2]),
+									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
 		                            object_list=self.objects
 									)
 		#
@@ -63,7 +61,7 @@ class ClearObstaclesTask(Task):
 									rgbaColor=utils.COLORS['red'],
 									basePosition=[0.625,
 									              0.15 * (2 * random.random() - 1), 0.03],
-									baseOrientation=p.getQuaternionFromEuler([0, 0, math.pi/2]),
+									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
 		                            object_list=self.objects
 									)
 
@@ -103,7 +101,6 @@ class ClearObstaclesTask(Task):
 
 	def reward(self, depth_map):
 		reward = 0
-
 
 		weight_map = self.update_weight_map(depth_map)
 
@@ -147,7 +144,7 @@ class ClearObstaclesTask(Task):
 
 			pick_pos = base
 
-			pick_orin = p.getQuaternionFromEuler([0, -math.pi, p.getEulerFromQuaternion(pick_orin)[2]])
+			pick_orin = p.getQuaternionFromEuler([0, -np.pi, p.getEulerFromQuaternion(pick_orin)[2]])
 
 			pick_pose = (np.asarray(pick_pos), np.asarray(pick_orin))
 
@@ -161,7 +158,7 @@ class ClearObstaclesTask(Task):
 				place_y = -0.22
 			place_pos = (base[0], place_y, place_z)
 
-			place_orin = p.getQuaternionFromEuler([0, -math.pi, 0])
+			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 
 			place_pose = (np.asarray(place_pos), np.asarray(place_orin))
 

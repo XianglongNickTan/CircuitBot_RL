@@ -69,6 +69,7 @@ class DaBai:
 	# image_size = (160, 160)
 	# image_size = (320, 224)         # (row, column)
 	image_size = (320, 320)         # (row, column)
+	# image_size = (80, 80)         # (row, column)
 
 	position = (0.5, 0, 2)
 

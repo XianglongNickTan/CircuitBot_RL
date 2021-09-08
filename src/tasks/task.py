@@ -37,6 +37,7 @@ from utils.pathplanning.pathanalyzer import PathAnalyzer
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
 rootdir += "/assets"
 
+
 obj_cube = rootdir + "/cube_4.obj"
 obj_cuboid1 = rootdir + "/cuboid_4_4_8.obj"
 obj_cuboid2 = rootdir + "/cuboid_4_16.obj"
@@ -235,5 +236,25 @@ class Task():
 		# print([robot_column, robot_row], [source_column, source_row])
 		# print([55 - robot_column, robot_row], [55 - source_column, source_row])
 
-		self.analyzer.set_pathplan(0, [robot_column, robot_row], [source_column, source_row])
-		self.analyzer.set_pathplan(1, [55 - robot_column, robot_row], [55 - source_column, source_row])
+		self.analyzer.set_pathplan(0, [robot_column, 79], [source_column, 0])
+		self.analyzer.set_pathplan(1, [55 - robot_column, 79], [55 - source_column, 0])
+
+
+	def get_true_image(self):
+		"""Get RGB-D orthographic heightmaps and segmentation masks."""
+
+		# Capture near-orthographic RGB-D images and segmentation masks.
+		color, depth, segm = self.env.render_camera(self.camera[0])
+
+		# Combine color with masks for faster processing.
+		color = np.concatenate((color, segm[Ellipsis, None]), axis=2)
+
+		# Reconstruct real orthographic projection from point clouds.
+		hmaps, cmaps = utils.reconstruct_heightmaps(
+			[color], [depth], self.camera, self.bounds, self.pix_size)
+
+		# Split color back into color and masks.
+		cmap = np.uint8(cmaps)[0, Ellipsis, :3]
+		hmap = np.float32(hmaps)[0, Ellipsis]
+		mask = np.int32(cmaps)[0, Ellipsis, 3:].squeeze()
+		return cmap, hmap, mask
