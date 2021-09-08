@@ -170,7 +170,7 @@ class Environment(Env):
 
 		# Notes: 1) FOV is vertical FOV 2) aspect must be float
 		aspect_ratio = config['image_size'][1] / config['image_size'][0]
-		projm = p.computeProjectionMatrixFOV(fovh, 1, znear, zfar)
+		projm = p.computeProjectionMatrixFOV(fovh, aspect_ratio, znear, zfar)
 
 		# Render with OpenGL camera settings.
 		_, _, color, depth, segm = p.getCameraImage(
@@ -195,20 +195,22 @@ class Environment(Env):
 			color = np.int32(color)
 			color += np.int32(self._random.normal(0, 3, config['image_size']))
 			color = np.uint8(np.clip(color, 0, 255))
-		color = color[:, width_clip:-width_clip, :]
+		# color = color[:, width_clip:-width_clip, :]
 
 		# Get depth image.
 		depth_image_size = (config['image_size'][0], config['image_size'][1])
 		zbuffer = np.array(depth).reshape(depth_image_size)
+		# depth = (zfar + znear - (2. * zbuffer - 1.) * (zfar - znear))
+		# depth = (2. * znear * zfar) / depth
 		depth = zfar - zfar * znear / (zfar - (zfar - znear) * zbuffer)
 
 		if config['noise']:
 			depth += self._random.normal(0, 0.003, depth_image_size)
-		depth = depth[:, width_clip:-width_clip]
+		# depth = depth[:, width_clip:-width_clip]
 
 		# Get segmentation image.
 		segm = np.uint8(segm).reshape(depth_image_size)
-		segm = segm[:, width_clip:-width_clip]
+		# segm = segm[:, width_clip:-width_clip]
 
 		cv2.imshow('test', color)
 		cv2.waitKey(1)
@@ -270,7 +272,7 @@ class Environment(Env):
 
 		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
 
-		# self.task.reset()
+		self.task.reset()
 
 		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 
@@ -305,7 +307,6 @@ class Environment(Env):
 
 		if done:
 			info = {"episode": {"l": self.numSteps, "r": reward}}
-
 
 
 

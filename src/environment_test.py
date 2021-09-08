@@ -80,7 +80,8 @@ def main(unused_argv):
 	for _ in range(500):
 		p.stepSimulation()
 
-	_, depth_map, _ = get_true_image(env)
+	_, depth_map, obj_mask = get_true_image(env)
+	# _, depth_map= env._get_obs()
 
 	print("--------")
 
@@ -89,8 +90,8 @@ def main(unused_argv):
 	print(x, y)
 
 
-	depth_map *= 100  ### convert to cm
-	depth_map -= 1  ### minus plate height
+	# depth_map *= 100  ### convert to cm
+	# depth_map -= 1  ### minus plate height
 
 	#### resize the map to weight map ######
 	weight_map = cv2.resize(depth_map, (int(y / 0.01 * pix_size), int(x / 0.01 * pix_size)))
@@ -98,7 +99,7 @@ def main(unused_argv):
 
 	analyzer.set_map(weight_map)
 
-	print(depth_map.shape)
+	print(weight_map.shape)
 	# analyzer.set_map(np.ones([80, 64]))
 
 	# analyzer.set_pathplan(0, [robot_column, robot_row], [source_column, source_row])
@@ -113,8 +114,11 @@ def main(unused_argv):
 	# analyzer.set_pathplan(0, [22, 65], [22, 20])
 	# analyzer.set_pathplan(1, [33, 65], [33, 20])
 	#
-	analyzer.set_pathplan(0, [22, 30], [22, 0])
-	analyzer.set_pathplan(1, [33, 30], [33, 0])
+	# analyzer.set_pathplan(0, [35, 79], [35, 0])
+	# analyzer.set_pathplan(1, [25, 79], [25, 0])
+
+	analyzer.set_pathplan(0, [0, 20], [70, 20])
+	analyzer.set_pathplan(1, [0, 36], [70, 36])
 
 	analyzer.search()
 	analyzer.draw_map_3D()

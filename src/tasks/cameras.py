@@ -67,15 +67,18 @@ class DaBai:
 
 	# Near-orthographic projection.
 	# image_size = (160, 160)
-	# image_size = (320, 224)         # (row, column)
-	image_size = (320, 320)         # (row, column)
+	image_size = (320, 224)         # (row, column)
+	# image_size = (320, 320)         # (row, column)
 	# image_size = (80, 80)         # (row, column)
 
 	position = (0.5, 0, 2)
+	# position = (0.5, 0, 1.125)
 
 	focus_len = image_size[0] * position[2] / 0.8
 
 	intrinsics = (focus_len, 0, 320., 0, 400., 240., 0, 0, 1)
+
+	# intrinsics = (450., 0, 320., 0, 450., 240., 0, 0, 1)
 
 	rotation = p.getQuaternionFromEuler((0, -np.pi, np.pi/2))
 

@@ -14,7 +14,7 @@ np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
 
 class Jaco:
     def __init__(self,
-                 spawn_pos=(0, 0, 0),  # Position where to spawn the arm.
+                 spawn_pos=(0, 0.2, 0),  # Position where to spawn the arm.
                  reach_low=(-1, -1, 0),  # Lower limit of the arm workspace (might be used for safety).
                  reach_high=(1, 1, 1),  # Higher limit of the arm workspace.
                  randomize_arm=False,  # Whether arm initial position should be randomized.

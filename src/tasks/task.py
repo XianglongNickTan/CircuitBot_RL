@@ -87,7 +87,7 @@ class Task():
 		self.objects = []
 		self.electrodeID = []
 
-		self.pick_threshold = 0.03  ## m
+		self.pick_threshold = 0.05  ## m
 		self.grip_z_offset = 0.07
 
 		self.camera = DaBai.CONFIG
@@ -140,104 +140,103 @@ class Task():
 
 
 
-	def set_add_electrode(self, black_x_offset=0.145, black_y_offset=0.055, white_x_offset=0.145, white_y_offset=-0.055):
+	def set_add_electrode(self, black_x_offset=0.125, black_y_offset=0.055, white_x_offset=0.125, white_y_offset=-0.055):
 
-		robot_x = 0.145
+		robot_x = 0.125
 		robot_y = 0.055
 
 		robot_row = int((self.bounds[0, 1] - self.bounds[0, 0] - robot_x) * 100 - 0.5)
 		robot_column = int((self.bounds[1, 1] - robot_y) * 100 - 0.5)
 
 		### create robot electrode ###
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
-		# 				 rgbaColor=[0, 0, 0, 1],
-		# 				 basePosition=[robot_x + self.bounds[0, 0], robot_y, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		#                  object_list=self.electrodeID
-		# 				 )
-		#
-		# utils.create_obj(p.GEOM_BOX,
-	 	# 				 mass=-1,
-	 	#  				 halfExtents=[0.075, 0.005, 0.0001],
-	 	# 				 rgbaColor=[0, 0, 0, 1],
-	 	# 				 basePosition=[robot_x/2 + self.bounds[0, 0], robot_y, 0.01],
-	 	# 				 baseOrientation=[0, 0, 0, 1],
-		# 			     object_list=self.electrodeID
-		#                  )
-		#
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
-		# 				 rgbaColor=[1, 1, 1, 1],
-		# 				 basePosition=[robot_x + self.bounds[0, 0], -robot_y, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		# 				 object_list=self.electrodeID
-		#                  )
-		#
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.075, 0.005, 0.0001],
-		# 				 rgbaColor=[1, 1, 1, 1],
-		# 				 basePosition=[robot_x/2 + self.bounds[0, 0], -robot_y, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		# 				 object_list=self.electrodeID
-		# 				 )
-		#
-		#
-		# ### create power source electrode ###
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
-		# 				 rgbaColor=[0, 0, 0, 1],
-		# 				 basePosition=[self.bounds[0, 1] - black_x_offset, black_y_offset, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		# 				 object_list=self.electrodeID
-		# 				 )
-		#
-		#
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.075, 0.005, 0.0001],
-		# 				 rgbaColor=[0, 0, 0, 1],
-		# 				 basePosition=[self.bounds[0, 1] - black_x_offset / 2, black_y_offset, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		# 				 object_list=self.electrodeID
-		# 				 )
-		#
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
-		# 				 rgbaColor=[1, 1, 1, 1],
-		# 				 basePosition=[self.bounds[0, 1] - white_x_offset, white_y_offset, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		# 				 object_list=self.electrodeID
-		# 				 )
-		#
-		#
-		# utils.create_obj(p.GEOM_BOX,
-		# 				 mass=-1,
-		# 				 halfExtents=[0.075, 0.005, 0.0001],
-		# 				 rgbaColor=[1, 1, 1, 1],
-		# 				 basePosition=[self.bounds[0, 1] - white_x_offset / 2, white_y_offset, 0.01],
-		# 				 baseOrientation=[0, 0, 0, 1],
-		# 				 object_list=self.electrodeID
-		# 				 )
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[0.0075, 0.0075, 0.0001],
+						 rgbaColor=[0, 0, 0, 1],
+						 basePosition=[robot_x + self.bounds[0, 0], robot_y, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+						 )
+
+		utils.create_obj(p.GEOM_BOX,
+	 					 mass=-1,
+	 	 				 halfExtents=[robot_x/2, 0.005, 0.0001],
+	 					 rgbaColor=[0, 0, 0, 1],
+	 					 basePosition=[robot_x/2 + self.bounds[0, 0], robot_y, 0.01],
+	 					 baseOrientation=[0, 0, 0, 1],
+					     object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[0.0075, 0.0075, 0.0001],
+						 rgbaColor=[1, 1, 1, 1],
+						 basePosition=[robot_x + self.bounds[0, 0], -robot_y, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+						 object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[robot_x/2, 0.005, 0.0001],
+						 rgbaColor=[1, 1, 1, 1],
+						 basePosition=[robot_x/2 + self.bounds[0, 0], -robot_y, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+						 object_list=self.electrodeID
+						 )
+
+
+		### create power source electrode ###
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[0.0075, 0.0075, 0.0001],
+						 rgbaColor=[0, 0, 0, 1],
+						 basePosition=[self.bounds[0, 1] - black_x_offset, black_y_offset, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+						 object_list=self.electrodeID
+						 )
+
+
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[black_x_offset/2, 0.005, 0.0001],
+						 rgbaColor=[0, 0, 0, 1],
+						 basePosition=[self.bounds[0, 1] - black_x_offset / 2, black_y_offset, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+						 object_list=self.electrodeID
+						 )
+
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[0.0075, 0.0075, 0.0001],
+						 rgbaColor=[1, 1, 1, 1],
+						 basePosition=[self.bounds[0, 1] - white_x_offset, white_y_offset, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+						 object_list=self.electrodeID
+						 )
+
+
+		utils.create_obj(p.GEOM_BOX,
+						 mass=-1,
+						 halfExtents=[white_x_offset/2, 0.005, 0.0001],
+						 rgbaColor=[1, 1, 1, 1],
+						 basePosition=[self.bounds[0, 1] - white_x_offset / 2, white_y_offset, 0.01],
+						 baseOrientation=[0, 0, 0, 1],
+						 object_list=self.electrodeID
+						 )
 
 		source_row = int(89 - (self.bounds[0, 1] - self.bounds[0, 0] - black_x_offset) * 100 - 0.5)
 		source_column = int((self.bounds[1, 1] - black_y_offset) * 100 - 0.5)
 
 		self.analyzer.set_map(self.init_weight_map())
 
-		# self.analyzer.set_pathplan(0, [robot_column, robot_row], [source_column, source_row])
-		# self.analyzer.set_pathplan(1, [55 - robot_column, robot_row], [55 - source_column, source_row])
+		self.analyzer.set_pathplan(0, [robot_column, robot_row], [source_column, source_row])
+		self.analyzer.set_pathplan(1, [55 - robot_column, robot_row], [55 - source_column, source_row])
 
 		# print([robot_column, robot_row], [source_column, source_row])
 		# print([55 - robot_column, robot_row], [55 - source_column, source_row])
 
-		self.analyzer.set_pathplan(0, [robot_column, 79], [source_column, 0])
-		self.analyzer.set_pathplan(1, [55 - robot_column, 79], [55 - source_column, 0])
+
 
 
 	def get_true_image(self):

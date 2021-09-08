@@ -40,7 +40,7 @@ class TransporterAgent:
     self.crop_size = 32
     self.n_rotations = n_rotations
     # self.pix_size = 0.003125
-    self.pix_size = 0.005
+    self.pix_size = 0.0025
     # self.in_shape = (320, 160, 6)
     self.in_shape = (224, 320, 3)
     # self.cam_config = cameras.RealSenseD415.CONFIG
@@ -62,8 +62,6 @@ class TransporterAgent:
     cmap, hmap = utils.get_fused_heightmap(
         obs, self.cam_config, self.bounds, self.pix_size)
     img = np.concatenate((cmap,
-                          hmap[Ellipsis, None],
-                          hmap[Ellipsis, None],
                           hmap[Ellipsis, None]), axis=2)
     assert img.shape == self.in_shape, img.shape
     return img
@@ -194,8 +192,8 @@ class TransporterAgent:
     hmap = img[:, :, 3]
     p0_xyz = utils.pix_to_xyz(p0_pix, hmap, self.bounds, self.pix_size)
     p1_xyz = utils.pix_to_xyz(p1_pix, hmap, self.bounds, self.pix_size)
-    p0_xyzw = utils.eulerXYZ_to_quatXYZW((0, 0, -p0_theta))
-    p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, 0, -p1_theta))
+    p0_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p0_theta))
+    p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
 
     return {
         'pose0': (np.asarray(p0_xyz), np.asarray(p0_xyzw)),

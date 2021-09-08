@@ -1,8 +1,9 @@
 import collections
+import random
+
 import numpy as np
 from tasks.task import Task
 # from ravens.utils import utils
-import math
 from utils import utils
 from gym import spaces
 import cv2
@@ -23,8 +24,9 @@ class ClearObstaclesTask(Task):
 
 		self.max_steps = 3
 
-
 		self.env = env
+
+		self.grab_num = 0
 
 		# self.action_space = spaces.Box(
 		# 	low=np.array([22 * self.pixel_ratio, 8 * self.pixel_ratio, 22 * self.pixel_ratio, 8 * self.pixel_ratio, 0]),
@@ -32,30 +34,44 @@ class ClearObstaclesTask(Task):
 		# 	dtype=np.int)
 
 
+	def add_obstacles(self):
+		obstacle_type = [self.obj_type['cube'],
+		                 self.obj_type['cuboid1'],
+		                 self.obj_type['cuboid2'],
+		                 self.obj_type['cuboid3']]
 
-	def init_task(self):
-		object_1 = utils.create_obj(p.GEOM_MESH,
+		obstacle = obstacle_type[random.randint(0, 3)]
+
+		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
-									use_file=self.obj_type['cuboid2'],
+									use_file=obstacle,
 									rgbaColor=utils.COLORS['red'],
-									basePosition=[0.495, 0.075, 0.03],
-									baseOrientation=p.getQuaternionFromEuler([0, 0, math.pi/2])
+									basePosition=[0.3 + 4 * random.random() / 10,
+									              0.10 * (2 * random.random() - 1), 0.03],
+									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
+		                            object_list=self.objects
 									)
+		#
 
-		self.objects.append(object_1)
 
 
 	def apply_action(self, action=None):
 		pick_pos = action['pose0']
 		place_pos = action['pose1']
 
-		move_object = self.compare_object_base(pick_pos[0])
+		move_object = self.objects[0]
+
+		if pick_pos[0][2] < self.grip_z_offset:
+			pick_pos[0][2] += self.grip_z_offset
+
+		if place_pos[0][2] < self.grip_z_offset:
+			place_pos[0][2] += self.grip_z_offset
+
 		self.arm.pick_place_object(move_object, pick_pos[0], pick_pos[1], place_pos[0], place_pos[1])
 
+		self.grab_num += 1
 
-
-
-
+		# pass
 
 	def remove_objects(self):
 		for object in self.objects:
@@ -69,16 +85,21 @@ class ClearObstaclesTask(Task):
 
 	def reset(self):
 		self.remove_objects()
-		self.init_task()
-		self.init_weight_map()
-		# self.analyzer.draw_map_3D()
+		self.grab_num = 0
+
+		self.set_add_electrode()
+		self.add_obstacles()
 
 
-	def reward(self):
+
+
+
+	def reward(self, depth_map):
 		reward = 0
 
-		self._update_weight_map()
-		self.analyzer.set_map(self.weight_map)
+		weight_map = self.update_weight_map(depth_map)
+
+		self.analyzer.set_map(weight_map)
 		self.analyzer.search()
 
 		success_1, path_1, cost_1 = self.analyzer.get_result(0)
@@ -92,65 +113,49 @@ class ClearObstaclesTask(Task):
 			reward += 100
 			reward -= cost_2
 
+		# self.analyzer.draw_map_3D()
+
+		print(reward)
 		return reward
 
 
 	def done(self):
 		return None
 
-
-
 	def get_discrete_oracle_agent(self):
 		OracleAgent = collections.namedtuple('OracleAgent', ['act'])
-
-
 
 		def act(obs, info):  # pylint: disable=unused-argument
 			"""Calculate action."""
 			# self._update_weight_map()
 
-			pixel_action = self.action_space.sample()
-			# self._update_weight_map()
-
-			place_xy = [pixel_action[2], pixel_action[3]]
-			place_xy = utils.from_pixel_to_coordinate(place_xy, self.pixel_ratio)
 			move_object = self.objects[0]
-
-			if pixel_action[4] == 0:
-				place_orin = [0, -math.pi, 0]
-			else:
-				place_orin = [0, -math.pi, math.pi / 2]
-
-
-			place_background_height = self.weight_map[
-				int(pixel_action[2] / self.pixel_ratio), int(pixel_action[3] / self.pixel_ratio)]
-
 
 			base, pick_orin = p.getBasePositionAndOrientation(move_object)
 
+			base = np.asarray(base)
 
-			pick_orin = p.getEulerFromQuaternion(pick_orin)
+			base[2] += self.grip_z_offset
 
+			pick_pos = base
 
-			pick_z = base[2] + self.grip_z_offset
+			pick_orin = p.getQuaternionFromEuler([0, -np.pi, p.getEulerFromQuaternion(pick_orin)[2]])
 
-			pick_orin = [0, -math.pi, pick_orin[2]]
-
-			place_z = place_background_height / 100 + self.grip_z_offset
-
-			pick_point = [base[0], base[1], pick_z]
-			place_point = [place_xy[0], place_xy[1], place_z]
+			pick_pose = (np.asarray(pick_pos), np.asarray(pick_orin))
 
 
-			pick_orin_quat = p.getQuaternionFromEuler(pick_orin)
-			pick_pose = ((base[0], base[1], pick_z),
-						 (pick_orin_quat[0], pick_orin_quat[1], pick_orin_quat[2], pick_orin_quat[3]))
-			pick_pose = (np.asarray(pick_pose[0]), np.asarray(pick_pose[1]))
 
-			place_orin_quat = p.getQuaternionFromEuler(place_orin)
-			place_pose = ((place_xy[0], place_xy[1], place_z),
-						  (place_orin_quat[0], place_orin_quat[1], place_orin_quat[2], place_orin_quat[3]))
-			place_pose = (np.asarray(place_pose[0]), np.asarray(place_pose[1]))
+			place_z = 0.04 + self.grip_z_offset
+			if base[1] > 0:
+				place_y = 0.22
+
+			else:
+				place_y = -0.22
+			place_pos = (base[0], place_y, place_z)
+
+			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
+
+			place_pose = (np.asarray(place_pos), np.asarray(place_orin))
 
 
 			return {'pose0': pick_pose, 'pose1': place_pose}
