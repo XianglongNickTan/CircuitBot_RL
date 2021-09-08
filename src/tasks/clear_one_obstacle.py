@@ -59,7 +59,7 @@ class ClearObstaclesTask(Task):
 		pick_pos = action['pose0']
 		place_pos = action['pose1']
 
-		move_object = self.compare_object_base(pick_pos)
+		move_object = self.objects[0]
 
 		if pick_pos[0][2] < self.grip_z_offset:
 			pick_pos[0][2] += self.grip_z_offset

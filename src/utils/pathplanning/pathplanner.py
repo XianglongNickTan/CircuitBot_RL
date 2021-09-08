@@ -120,24 +120,24 @@ class PathPlanner:
         if abs(location.z - self.destination.z) < self.analyzer.min_slope:
             pos_list.append((self.get_map().get_coordination(self.destination.x, self.destination.y), False))
 
-        vals = self.get_map().dem_map - location.z
-        diffs = np.absolute(vals)
-        temps = np.where((self.analyzer.min_slope < diffs) & (diffs < self.analyzer.max_slope))
-        slope_pts = np.flip(np.transpose(temps), axis = 1)
+        # vals = self.get_map().dem_map - location.z
+        # diffs = np.absolute(vals)
+        # temps = np.where((self.analyzer.min_slope < diffs) & (diffs < self.analyzer.max_slope))
+        # slope_pts = np.flip(np.transpose(temps), axis = 1)
 
-        count = 0
-        for slope_pt in slope_pts.tolist():
-            if (slope_pt[0], slope_pt[1]) in self.obstacles:
-                continue
-            if vals[slope_pt[1]][slope_pt[0]] > 0:
-                stop = self.find_slope_destination(self.get_map().get_coordination(slope_pt[0],slope_pt[1]), True)
-            else:
-                stop = self.find_slope_destination(self.get_map().get_coordination(slope_pt[0],slope_pt[1]), False)
+        # count = 0
+        # for slope_pt in slope_pts.tolist():
+        #     if (slope_pt[0], slope_pt[1]) in self.obstacles:
+        #         continue
+        #     if vals[slope_pt[1]][slope_pt[0]] > 0:
+        #         stop = self.find_slope_destination(self.get_map().get_coordination(slope_pt[0],slope_pt[1]), True)
+        #     else:
+        #         stop = self.find_slope_destination(self.get_map().get_coordination(slope_pt[0],slope_pt[1]), False)
 
-            if (stop.x, stop.y) in self.obstacles:
-                continue
-            count += 1
-            pos_list.append((self.get_map().get_coordination(stop.x, stop.y), True))
+        #     if (stop.x, stop.y) in self.obstacles:
+        #         continue
+        #     count += 1
+        #     pos_list.append((self.get_map().get_coordination(stop.x, stop.y), True))
 
         return pos_list
     
