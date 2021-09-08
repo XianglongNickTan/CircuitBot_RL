@@ -27,7 +27,7 @@ def main(unused_argv):
   env = Environment(
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
-      hz=60)
+      hz=240)
   task = ClearObstaclesTask(env)
   task.mode = FLAGS.mode
 

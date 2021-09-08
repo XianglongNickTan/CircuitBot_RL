@@ -6,7 +6,6 @@ import math
 from utils import utils
 from gym import spaces
 import cv2
-from utils.pathplanning.pathanalyzer import PathAnalyzer
 
 import os, sys
 import pybullet as p
@@ -22,20 +21,15 @@ class ClearObstaclesTask(Task):
 
 		super().__init__()
 
-		self.max_steps = 30
+		self.max_steps = 3
 
 
 		self.env = env
-		self.arm = env.arm
-		self.pixel_ratio = env.pixel_ratio
 
-		self.action_space = spaces.Box(
-			low=np.array([22 * self.pixel_ratio, 8 * self.pixel_ratio, 22 * self.pixel_ratio, 8 * self.pixel_ratio, 0]),
-			high=np.array([58 * self.pixel_ratio, 47 * self.pixel_ratio, 58 * self.pixel_ratio, 47 * self.pixel_ratio, 1]),
-			dtype=np.int)
-
-
-
+		# self.action_space = spaces.Box(
+		# 	low=np.array([22 * self.pixel_ratio, 8 * self.pixel_ratio, 22 * self.pixel_ratio, 8 * self.pixel_ratio, 0]),
+		# 	high=np.array([58 * self.pixel_ratio, 47 * self.pixel_ratio, 58 * self.pixel_ratio, 47 * self.pixel_ratio, 1]),
+		# 	dtype=np.int)
 
 
 
@@ -63,11 +57,14 @@ class ClearObstaclesTask(Task):
 
 
 
-
 	def remove_objects(self):
 		for object in self.objects:
 			p.removeBody(object)
 		self.objects = []
+
+		for object in self.electrodeID:
+			p.removeBody(object)
+		self.electrodeID = []
 
 
 	def reset(self):
@@ -75,16 +72,11 @@ class ClearObstaclesTask(Task):
 
 		self.init_task()
 
-		self.analyzer = PathAnalyzer()
-		self.path_length = 0
-		self._update_weight_map()
-
-		self.analyzer.set_map(self.weight_map)
-
-		self.analyzer.set_pathplan(0, [self.env.ele_c_l, self.env.ele_r_n], [self.env.ele_c_l, self.env.ele_r_f])
-		self.analyzer.set_pathplan(1, [self.env.ele_c_r, self.env.ele_r_n], [self.env.ele_c_r, self.env.ele_r_f])
+		self.init_weight_map()
 
 
+
+		# self.analyzer.draw_map_3D()
 
 
 	def reward(self):
@@ -125,6 +117,7 @@ class ClearObstaclesTask(Task):
 			# self._update_weight_map()
 
 			pixel_action = self.action_space.sample()
+			# self._update_weight_map()
 
 			place_xy = [pixel_action[2], pixel_action[3]]
 			place_xy = utils.from_pixel_to_coordinate(place_xy, self.pixel_ratio)
@@ -162,12 +155,9 @@ class ClearObstaclesTask(Task):
 			pick_pose = (np.asarray(pick_pose[0]), np.asarray(pick_pose[1]))
 
 			place_orin_quat = p.getQuaternionFromEuler(place_orin)
-			place_pose = ((place_xy[0], place_xy[1], 0.1),
+			place_pose = ((place_xy[0], place_xy[1], place_z),
 						  (place_orin_quat[0], place_orin_quat[1], place_orin_quat[2], place_orin_quat[3]))
 			place_pose = (np.asarray(place_pose[0]), np.asarray(place_pose[1]))
-
-			print(place_pose)
-
 
 
 			return {'pose0': pick_pose, 'pose1': place_pose}

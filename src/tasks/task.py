@@ -23,13 +23,15 @@ import tempfile
 
 import cv2
 import numpy as np
-from ravens.utils import utils
+from utils import utils
 
 import pybullet as p
 
 import sys
 
 from tasks.cameras import DaBai
+from circuitbot.jaco_sim.jaco import Jaco
+from utils.pathplanning.pathanalyzer import PathAnalyzer
 
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
@@ -73,20 +75,27 @@ class Task():
 		self.obj_type = OBJECTS
 
 		# Workspace bounds.
-		self.pix_size = 0.005
+		# self.pix_size = 0.005
+		self.pix_size = 0.0025
+
 		self.bounds = np.array([[0.1, 0.9], [-0.28, 0.28], [0, 0.3]])
 
-		self.goals = []
-		self.progress = 0
-		self._rewards = 0
 
 		self.assets_root = None
 
 		self.objects = []
+		self.electrodeID = []
+
 		self.pick_threshold = 0.03  ## m
 		self.grip_z_offset = 0.07
 
 		self.camera = DaBai.CONFIG
+
+		self.arm = Jaco()
+
+		self.analyzer = PathAnalyzer()
+
+
 
 	def compare_object_base(self, pick_pos):
 		move_object = None
@@ -107,16 +116,124 @@ class Task():
 
 		return move_object
 
-	def _update_weight_map(self):
-		_, depth_map, _ = self.env.render_camera(self.camera[0])
+
+	def init_weight_map(self):
+		weight_map = np.zeros([80, 56])
+
+		return weight_map
+
+
+	def update_weight_map(self, depth_map):
+		# depth_map = np.asarray(depth_map)
 
 		x, y = depth_map.shape[0:2]
+
 
 		depth_map *= 100    ### convert to cm
 		depth_map -= 1      ### minus plate height
 
 		#### resize the map to weight map ######
-		weight_map = cv2.resize(depth_map, (int(y / self.env.pixel_ratio), int(x / self.env.pixel_ratio)))
+		weight_map = cv2.resize(depth_map, (int(y / 0.01 * self.pix_size), int(x / 0.01 * self.pix_size)))
 
-		# weight_map = depth_map
-		self.weight_map = weight_map
+		return weight_map
+
+
+
+	def set_add_electrode(self, black_x_offset=0.145, black_y_offset=0.055, white_x_offset=0.145, white_y_offset=-0.055):
+
+		robot_x = 0.145
+		robot_y = 0.055
+
+		robot_row = int((self.bounds[0, 1] - self.bounds[0, 0] - robot_x) * 100 - 0.5)
+		robot_column = int((self.bounds[1, 1] - robot_y) * 100 - 0.5)
+
+		### create robot electrode ###
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
+		# 				 rgbaColor=[0, 0, 0, 1],
+		# 				 basePosition=[robot_x + self.bounds[0, 0], robot_y, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		#                  object_list=self.electrodeID
+		# 				 )
+		#
+		# utils.create_obj(p.GEOM_BOX,
+	 	# 				 mass=-1,
+	 	#  				 halfExtents=[0.075, 0.005, 0.0001],
+	 	# 				 rgbaColor=[0, 0, 0, 1],
+	 	# 				 basePosition=[robot_x/2 + self.bounds[0, 0], robot_y, 0.01],
+	 	# 				 baseOrientation=[0, 0, 0, 1],
+		# 			     object_list=self.electrodeID
+		#                  )
+		#
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
+		# 				 rgbaColor=[1, 1, 1, 1],
+		# 				 basePosition=[robot_x + self.bounds[0, 0], -robot_y, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		# 				 object_list=self.electrodeID
+		#                  )
+		#
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.075, 0.005, 0.0001],
+		# 				 rgbaColor=[1, 1, 1, 1],
+		# 				 basePosition=[robot_x/2 + self.bounds[0, 0], -robot_y, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		# 				 object_list=self.electrodeID
+		# 				 )
+		#
+		#
+		# ### create power source electrode ###
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
+		# 				 rgbaColor=[0, 0, 0, 1],
+		# 				 basePosition=[self.bounds[0, 1] - black_x_offset, black_y_offset, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		# 				 object_list=self.electrodeID
+		# 				 )
+		#
+		#
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.075, 0.005, 0.0001],
+		# 				 rgbaColor=[0, 0, 0, 1],
+		# 				 basePosition=[self.bounds[0, 1] - black_x_offset / 2, black_y_offset, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		# 				 object_list=self.electrodeID
+		# 				 )
+		#
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.0075, 0.0075, 0.0001],
+		# 				 rgbaColor=[1, 1, 1, 1],
+		# 				 basePosition=[self.bounds[0, 1] - white_x_offset, white_y_offset, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		# 				 object_list=self.electrodeID
+		# 				 )
+		#
+		#
+		# utils.create_obj(p.GEOM_BOX,
+		# 				 mass=-1,
+		# 				 halfExtents=[0.075, 0.005, 0.0001],
+		# 				 rgbaColor=[1, 1, 1, 1],
+		# 				 basePosition=[self.bounds[0, 1] - white_x_offset / 2, white_y_offset, 0.01],
+		# 				 baseOrientation=[0, 0, 0, 1],
+		# 				 object_list=self.electrodeID
+		# 				 )
+
+		source_row = int(89 - (self.bounds[0, 1] - self.bounds[0, 0] - black_x_offset) * 100 - 0.5)
+		source_column = int((self.bounds[1, 1] - black_y_offset) * 100 - 0.5)
+
+		self.analyzer.set_map(self.init_weight_map())
+
+		# self.analyzer.set_pathplan(0, [robot_column, robot_row], [source_column, source_row])
+		# self.analyzer.set_pathplan(1, [55 - robot_column, robot_row], [55 - source_column, source_row])
+
+		# print([robot_column, robot_row], [source_column, source_row])
+		# print([55 - robot_column, robot_row], [55 - source_column, source_row])
+
+		self.analyzer.set_pathplan(0, [robot_column, robot_row], [source_column, source_row])
+		self.analyzer.set_pathplan(1, [55 - robot_column, robot_row], [55 - source_column, source_row])

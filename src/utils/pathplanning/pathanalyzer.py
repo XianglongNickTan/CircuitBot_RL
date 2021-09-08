@@ -14,7 +14,7 @@ class PathAnalyzer:
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.result = [PathResult(), PathResult()]
         self.min_slope = 0.2
-        self.max_slope = 2
+        self.max_slope = 0.7
 
     def set_map(self, array):
         self.map.read_fromNdArray(array)

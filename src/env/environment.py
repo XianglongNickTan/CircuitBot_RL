@@ -8,8 +8,9 @@ import sys
 import math
 
 
-from circuitbot.jaco_sim.jaco import Jaco
 from tasks.cameras import DaBai
+from utils import utils
+
 # from tasks.cameras import RealSenseD415
 
 sys.path.insert(1, "../bullet3/build_cmake/examples/pybullet")
@@ -21,13 +22,7 @@ np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
 
 class Environment(Env):
 	def __init__(self,
-				 map_row=80,
-				 map_column=56,
-				 n_substeps=5,  # Number of simulation steps to do in every env step.
 				 done_after=10000,
-				 workspace_width=56,
-				 workspace_height=80,
-				 plate_offset=10,
 				 disp=True,
 				 hz=240,
 				 shared_memory=False,
@@ -51,12 +46,7 @@ class Environment(Env):
 		### map settings ###
 		### x - row - height
 		### y - colomn - widthz
-		self.plate_offset = plate_offset
-		self.row = map_row
-		self.column = map_column
 
-		self.workspace_width = workspace_width
-		self.workspace_height = workspace_height
 
 
 		### robot pick place settings ###
@@ -67,25 +57,10 @@ class Environment(Env):
 
 		### training settings ###
 		self.numSteps = 0
-		self.n_substeps = n_substeps
 		self.doneAfter = done_after
-		self.pixel_ratio = 2        ### increase picture size by 2
-		self.weight_map_ratio = 1   ### 1:1 weight map
+
 
 		### print env settings ###
-		self.electrode_x_offset = 15  ### row in weight map
-		self.electrode_y_offset = 6
-
-		self.ele_r_n = int(self.workspace_height - self.electrode_x_offset)
-		self.ele_r_f = int(self.electrode_x_offset - 1)
-		self.ele_c_l = int(self.workspace_width / 2 + self.electrode_y_offset - 1)
-		self.ele_c_r = int(self.workspace_width / 2 - self.electrode_y_offset)
-
-		self.ele_n_l = self.from_pixel_to_coordinate([self.ele_r_n, self.ele_c_l], self.weight_map_ratio)
-		self.ele_n_r = self.from_pixel_to_coordinate([self.ele_r_n, self.ele_c_r], self.weight_map_ratio)
-		self.ele_f_l = self.from_pixel_to_coordinate([self.ele_r_f, self.ele_c_l], self.weight_map_ratio)
-		self.ele_f_r = self.from_pixel_to_coordinate([self.ele_r_f, self.ele_c_r], self.weight_map_ratio)
-
 
 		### fake camera ###
 		self.agent_cams = DaBai.CONFIG
@@ -128,49 +103,42 @@ class Environment(Env):
 
 
 		### action = [x, y, x, y, ori] ###
-		self.action_space = spaces.Box(
-			low=np.array([22*self.pixel_ratio, 8*self.pixel_ratio, 22*self.pixel_ratio, 8*self.pixel_ratio, 0]) ,
-			high=np.array([58*self.pixel_ratio, 47*self.pixel_ratio, 58*self.pixel_ratio, 47*self.pixel_ratio, 1]),
-			dtype=np.int)
+		# self.action_space = spaces.Box(
+		# 	low=np.array([22*self.pixel_ratio, 8*self.pixel_ratio, 22*self.pixel_ratio, 8*self.pixel_ratio, 0]) ,
+		# 	high=np.array([58*self.pixel_ratio, 47*self.pixel_ratio, 58*self.pixel_ratio, 47*self.pixel_ratio, 1]),
+		# 	dtype=np.int)
 
-		self.observation_space = spaces.Box(
-			-np.inf, np.inf, shape=(self.row, self.column), dtype='float32')
+		p.setGravity(0, 0, -10)
 
 
+		### init map ###
+		self.init_sim()
 
 
 		if task:
 			self.set_task(task)
 
 
-		self.obj_ids = {'fixed': [], 'rigid': [], 'deformable': []}
 		self.objects = []
 
 
-		### init map ###
-		self._init_sim()
 
-		### init jaco ###
-		self.arm = Jaco()
+	def set_task(self, task):
+		self.task = task
+
+
 
 
 	def close(self):
 		p.disconnect()
 
 
-	@property
-	def is_static(self):
+	def is_static(self, object):
 		"""Return true if objects are no longer moving."""
 		v = [np.linalg.norm(p.getBaseVelocity(i)[0])
-			 for i in self.obj_ids['rigid']]
+			 for i in object]
 		return all(np.array(v) < 5e-3)
 
-	def add_object(self, urdf, pose, category='rigid'):
-		"""List of (fixed, rigid, or deformable) objects in env."""
-		fixed_base = 1 if category == 'fixed' else 0
-		obj_id = None
-		self.obj_ids[category].append(obj_id)
-		return obj_id
 
 	def seed(self, seed=None):
 		self._random = np.random.RandomState(seed)
@@ -201,7 +169,6 @@ class Environment(Env):
 		fovh = 180 * np.arctan(fovh) * 2 / np.pi
 
 
-
 		# Notes: 1) FOV is vertical FOV 2) aspect must be float
 		aspect_ratio = config['image_size'][1] / config['image_size'][0]
 		projm = p.computeProjectionMatrixFOV(fovh, 1, znear, zfar)
@@ -212,14 +179,14 @@ class Environment(Env):
 			height=config['image_size'][0],
 			viewMatrix=viewm,
 			projectionMatrix=projm,
-			shadow=1,
+			shadow=0,
 			flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX,
 			# Note when use_egl is toggled, this option will not actually use openGL
 			# but EGL instead.
 			renderer=p.ER_BULLET_HARDWARE_OPENGL)
 
 
-		width_clip = int(24 * (self.pixel_ratio / 2))
+		width_clip = int(24 * (config['image_size'][0] / 160))
 
 		# Get color image.
 		color_image_size = (config['image_size'][0], config['image_size'][1], 4)
@@ -244,135 +211,28 @@ class Environment(Env):
 		segm = np.uint8(segm).reshape(depth_image_size)
 		segm = segm[:, width_clip:-width_clip]
 
+		cv2.imshow('test', color)
+		cv2.waitKey(1)
+
+
 
 		return color, depth, segm
 
 
 
 
-	def create_obj(self, obj, mass=None, halfExtents=None, radius=None, height=None, rgbaColor=None,
-				   basePosition=None, baseOrientation=None, use_file=None):
-
-		if not use_file:
-
-			if obj == p.GEOM_BOX:
-				visual = p.createVisualShape(obj, halfExtents=halfExtents, rgbaColor=rgbaColor)
-				shape = p.createCollisionShape(obj, halfExtents=halfExtents)
-
-			elif obj == p.GEOM_CYLINDER:
-				# visual = p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
-				visual = p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
-				# shape = p.createCollisionShape(obj, radius=radius, height=height)
-				shape = -1
-
-			else:
-				raise NotImplementedError()
-
-		else:
-			visual = p.createVisualShape(obj, fileName=use_file, rgbaColor=rgbaColor)
-			shape = p.createCollisionShape(obj, fileName=use_file)
-
-		objID = p.createMultiBody(baseMass=mass,
-								  baseCollisionShapeIndex=shape,
-								  baseVisualShapeIndex=visual,
-								  basePosition=basePosition,
-								  baseOrientation=baseOrientation)
-
-		return objID
-
-
-	def _init_sim(self):
+	def init_sim(self):
 
 		p.loadURDF("plane.urdf")
 
 		### create plate ###
-		self.create_obj(p.GEOM_BOX,
+		utils.create_obj(p.GEOM_BOX,
 						mass=-1,
-						halfExtents=[self.workspace_height/200, self.workspace_width/200, 0.005],
+						halfExtents=[0.4, 0.28, 0.005],
 						rgbaColor=[1, 0.90, 0.72, 1],
-						basePosition=[self.workspace_height/200+0.1, 0, 0.005],
+						basePosition=[0.5, 0, 0.005],
 						baseOrientation=[0, 0, 0, 1]
 						)
-
-		### create near electrode ###
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[0.0075, 0.0075, 0.0001],
-						rgbaColor=[0, 0, 0, 1],
-						basePosition=[self.ele_n_l[0], self.ele_n_l[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
-						rgbaColor=[0, 0, 0, 1],
-						basePosition=[(self.ele_n_l[0] + 0.1) / 2, self.ele_n_l[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[0.0075, 0.0075, 0.0001],
-						rgbaColor=[1, 1, 1, 1],
-						basePosition=[self.ele_n_r[0], self.ele_n_r[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
-						rgbaColor=[1, 1, 1, 1],
-						basePosition=[(self.ele_n_r[0] + 0.1) / 2, self.ele_n_r[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-
-		### create far electrode ###
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[0.0075, 0.0075, 0.0001],
-						rgbaColor=[0, 0, 0, 1],
-						basePosition=[self.ele_f_l[0], self.ele_f_l[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
-						rgbaColor=[0, 0, 0, 1],
-						basePosition=[self.ele_f_l[0] + self.electrode_x_offset / 200, self.ele_f_l[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[0.0075, 0.0075, 0.0001],
-						rgbaColor=[1, 1, 1, 1],
-						basePosition=[self.ele_f_r[0], self.ele_f_r[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-
-		self.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[self.electrode_x_offset / 200, 0.005, 0.0001],
-						rgbaColor=[1, 1, 1, 1],
-						basePosition=[self.ele_f_r[0] + self.electrode_x_offset / 200, self.ele_f_r[1], 0.01],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-
-
-
-	def from_pixel_to_coordinate(self, x_y, ratio):
-		""" ratio: 1 = 1:1 cm  2 = 1:0.5cm """
-		real_x = self.workspace_height - (0.5 + x_y[0]) / ratio
-		real_y = self.workspace_width / 2 - (0.5 + x_y[1]) / ratio
-
-		return [(real_x + self.plate_offset) / 100, real_y / 100]
-
 
 
 
@@ -383,7 +243,7 @@ class Environment(Env):
 		obs['color'] += (color,)
 		obs['depth'] += (depth,)
 
-		return obs
+		return obs, depth
 
 
 
@@ -405,18 +265,15 @@ class Environment(Env):
 				info[obj_id] = (pos, rot, dim)
 		return info
 
-	def set_task(self, task):
-		self.task = task
-
 
 
 	def reset(self):
 
-
-		p.setGravity(0, 0, -10)
-
+		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
 
 		self.task.reset()
+
+		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 
 		obs, _, _, _ = self.step()
 
@@ -433,10 +290,13 @@ class Environment(Env):
 			self.task.apply_action(action)
 
 
-		while not self.is_static:
+		while not self.is_static(self.task.objects):
 			p.stepSimulation()
 
-		reward = self.task.reward() if action is not None else (0, {})
+		obs, depth = self._get_obs()
+
+
+		reward = self.task.reward(depth) if action is not None else (0, {})
 		done = self.task.done()
 
 		info = {}
@@ -444,7 +304,8 @@ class Environment(Env):
 		if done:
 			info = {"episode": {"l": self.numSteps, "r": reward}}
 
-		obs = self._get_obs()
+
+
 
 		if self.numSteps == 0:
 			self.startTime = time.time()

@@ -62,13 +62,20 @@ class RealSenseD415():
 	}]
 
 
-class DaBai():
+class DaBai:
 	"""Top-down noiseless image used only by the oracle demonstrator."""
 
 	# Near-orthographic projection.
-	image_size = (160, 160)
-	intrinsics = (400., 0, 320., 0, 400., 240., 0, 0, 1)
+	# image_size = (160, 160)
+	# image_size = (320, 224)         # (row, column)
+	image_size = (320, 320)         # (row, column)
+
 	position = (0.5, 0, 2)
+
+	focus_len = image_size[0] * position[2] / 0.8
+
+	intrinsics = (focus_len, 0, 320., 0, 400., 240., 0, 0, 1)
+
 	rotation = p.getQuaternionFromEuler((0, -np.pi, np.pi/2))
 
 	# Camera config.
@@ -77,6 +84,6 @@ class DaBai():
 		'intrinsics': intrinsics,
 		'position': position,
 		'rotation': rotation,
-		'zrange': (0.01, 2),
+		'zrange': (0.01, position[2]),
 		'noise': False
 	}]

@@ -42,9 +42,9 @@ class TransporterAgent:
     # self.pix_size = 0.003125
     self.pix_size = 0.005
     # self.in_shape = (320, 160, 6)
-    self.in_shape = (112, 160, 3)
+    self.in_shape = (224, 320, 3)
     # self.cam_config = cameras.RealSenseD415.CONFIG
-    self.cam_config = cameras.Dabai.CONFIG
+    self.cam_config = cameras.DaBai.CONFIG
     self.models_dir = os.path.join(root_dir, 'checkpoints', self.name)
     # self.bounds = np.array([[0.25, 0.75], [-0.5, 0.5], [0, 0.28]])
     self.bounds = np.array([[0.1, 0.9], [-0.28, 0.28], [0, 0.3]])

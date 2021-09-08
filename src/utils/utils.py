@@ -1,4 +1,14 @@
+import matplotlib
+import matplotlib.pyplot as plt
+import meshcat
+import meshcat.geometry as g
+import meshcat.transformations as mtf
+
+import numpy as np
+from transforms3d import euler
+
 import pybullet as p
+
 
 workspace_width = 56
 workspace_height = 80
@@ -80,7 +90,7 @@ def from_pixel_to_coordinate(x_y, ratio):
 
 
 def create_obj(obj, mass=None, halfExtents=None, radius=None, height=None, rgbaColor=None,
-			   basePosition=None, baseOrientation=None, use_file=None):
+			   basePosition=None, baseOrientation=None, use_file=None, object_list=None):
 
 	if not use_file:
 
@@ -106,6 +116,9 @@ def create_obj(obj, mass=None, halfExtents=None, radius=None, height=None, rgbaC
 							  baseVisualShapeIndex=visual,
 							  basePosition=basePosition,
 							  baseOrientation=baseOrientation)
+
+	if object_list is not None:
+		object_list.append(objID)
 
 	return objID
 
@@ -831,6 +844,4 @@ def meshcat_visualize(vis, obs, act, info):
 
 		vis['pointclouds/' + str(cam_index)].set_object(
 			g.PointCloud(position=verts, color=colors))
-
-
 
