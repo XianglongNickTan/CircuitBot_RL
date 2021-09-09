@@ -229,7 +229,7 @@ class Environment(Env):
 		### create plate ###
 		utils.create_obj(p.GEOM_BOX,
 						mass=-1,
-						halfExtents=[0.4, 0.28, 0.005],
+						halfExtents=[0.4, 0.3, 0.005],
 						rgbaColor=[1, 0.90, 0.72, 1],
 						basePosition=[0.5, 0, 0.005],
 						baseOrientation=[0, 0, 0, 1]

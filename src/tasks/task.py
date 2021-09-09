@@ -79,7 +79,7 @@ class Task():
 		# self.pix_size = 0.005
 		self.pix_size = 0.0025
 
-		self.bounds = np.array([[0.1, 0.9], [-0.28, 0.28], [0, 0.3]])
+		self.bounds = np.array([[0.1, 0.9], [-0.3, 0.3], [0, 0.3]])
 
 
 		self.assets_root = None
