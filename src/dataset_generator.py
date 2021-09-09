@@ -14,8 +14,8 @@ flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
 flags.DEFINE_string('data_dir', '../results/datasets', '')
 flags.DEFINE_bool('disp', False, '')
 flags.DEFINE_bool('shared_memory', False, '')
-flags.DEFINE_string('mode', 'train', '')
-flags.DEFINE_integer('n', 300, '')
+flags.DEFINE_string('mode', 'test', '')
+flags.DEFINE_integer('n', 50, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
 
 FLAGS = flags.FLAGS

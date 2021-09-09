@@ -65,8 +65,7 @@ class TransporterAgent:
 
     color = obs['color']
     depth = obs['depth']
-
-    img = np.dstack((color, depth))
+    img = np.dstack((color[0], depth[0]))
     assert img.shape == self.in_shape, img.shape
     return img
 
