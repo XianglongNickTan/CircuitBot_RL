@@ -57,23 +57,19 @@ class PathPlanner:
             node_to_open = self.open_list.top()
             if node_to_open.get_pos() == (self.destination.x, self.destination.y):
                 result = node_to_open
-                reached = True
-                break
+                path = []
+                path.append(result.get_pos())
+                total_cost = result.cost
+                node_iterator = NodeIterator(result)
+                for pos, cost in node_iterator:
+                    path.append(pos)
+                    total_cost += cost
+                self.path = path
+                self.cost = total_cost
+                return PathResult(True, path, total_cost)
             count += 1
             self.expand()
 
-        
-        if reached:
-            path = []
-            path.append(result.get_pos())
-            total_cost = result.cost
-            node_iterator = NodeIterator(result)
-            for pos, cost in node_iterator:
-                path.append(pos)
-                total_cost += cost
-            self.path = path
-            self.cost = total_cost
-            return PathResult(True, path, total_cost)
         return PathResult()
     
     def calc_cost(self, pos, new_pos):

@@ -23,7 +23,7 @@ from absl import flags
 import numpy as np
 from ravens import agents
 from ravens import dataset
-from ravens import tasks
+import tasks
 from env.environment import Environment
 import tensorflow as tf
 
