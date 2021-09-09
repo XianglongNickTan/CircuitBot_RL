@@ -9,6 +9,7 @@ from ravens.dataset import Dataset
 
 from env.environment import Environment
 # from tasks.clear_one_obstacle import ClearOneObstacle
+from tasks.construct_bridge import ConstructBridge
 import tasks
 
 
@@ -19,7 +20,7 @@ flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
 flags.DEFINE_integer('n', 100, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
-flags.DEFINE_string('task', 'clear-obstacles', '')
+flags.DEFINE_string('task', 'construct-bridge', '')
 
 FLAGS = flags.FLAGS
 

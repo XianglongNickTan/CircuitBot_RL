@@ -121,8 +121,11 @@ class Task:
 
 
 
-	def _get_reward(self, weight_map):
+	def _get_reward(self, weight_map, nono_area=None):
 		self.analyzer.set_map(weight_map)
+		if nono_area is not None:
+			self.add_nono_area_to_analyzer(nono_area)
+
 		self.analyzer.search()
 
 		success_1, path_1, cost_1 = self.analyzer.get_result(0)
@@ -302,8 +305,8 @@ class Task:
 	def add_nono_area(self, analyzer, top_left, bottom_right):
 		""" 1:1 pixel location"""
 
-		length = bottom_right[0] - top_left[0] + 1
-		width = bottom_right[1] - top_left[1] + 1
+		length = bottom_right[0] - top_left[0]
+		width = bottom_right[1] - top_left[1]
 
 		center_x = (bottom_right[0] + top_left[0]) / 2
 		center_y = (bottom_right[1] + top_left[1]) / 2
@@ -324,9 +327,15 @@ class Task:
 		for i in range(int(length*100)):
 			for j in range(int(width*100)):
 				point = (top_left_pix[0] + j, top_left_pix[1] + i)
+				# point = (top_left_pix[1] + j, top_left_pix[0] + i)
 				ob_list.append(point)
 
-		analyzer.set_obstacles(ob_list)
+
+		return [center_x, center_y], ob_list
+
+
+	def add_nono_area_to_analyzer(self, area_list):
+		self.analyzer.add_obstacles(area_list)
 
 
 

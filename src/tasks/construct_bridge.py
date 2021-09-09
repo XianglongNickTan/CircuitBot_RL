@@ -15,7 +15,7 @@ import pybullet as p
 from tasks.task import Task
 
 
-class ClearObstacles(Task):
+class ConstructBridge(Task):
 	""" remove one cube in the path"""
 
 	def __init__(self,
@@ -23,49 +23,35 @@ class ClearObstacles(Task):
 
 		super().__init__()
 
-		self.max_steps = 3
+		self.max_steps = 1
 
 		self.env = env
 
 		self.grap_num = 0
+		self.area_center = (0, 0)
 
+		self.area_list = []
 
 	def add_obstacles(self):
-		obstacle_type = [self.obj_type['cuboid1'],
-		                 self.obj_type['cuboid2'],
-		                 self.obj_type['cuboid3']]
 
-		obstacle = obstacle_type[random.randint(0, 2)]
+		obstacle_type = self.obj_type['triangular_prism']
+
+
+		base_x = 0.5 + 2 * (2 * random.random() - 1) / 10
 
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
-									use_file=obstacle,
+									use_file=obstacle_type,
 									rgbaColor=self.set_color(),
-									basePosition=[0.3 + random.random()/20,
+									basePosition=[base_x,
 									              0.10 * (2 * random.random() - 1), 0.03],
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
 		                            object_list=self.objects
 									)
 
-		utils.create_obj(p.GEOM_MESH,
-									mass=0.01,
-									use_file=obstacle,
-									rgbaColor=self.set_color(),
-									basePosition=[0.5 + random.random()/20,
-									              0.10 * (2 * random.random() - 1), 0.03],
-									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
-		                            object_list=self.objects
-									)
-
-		utils.create_obj(p.GEOM_MESH,
-									mass=0.01,
-									use_file=obstacle,
-									rgbaColor=self.set_color(),
-									basePosition=[0.7 + random.random()/20,
-									              0.10 * (2 * random.random() - 1), 0.03],
-									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
-		                            object_list=self.objects
-									)
+		self.area_center, self.area_list = self.add_nono_area(analyzer=self.analyzer,
+		                                top_left=[0.9 - base_x, -0.2 + random.random() / 10],
+	                                    bottom_right=[0.9 - base_x + 0.1, 0.2 + random.random() / 10])
 
 
 	def apply_action(self, action=None):
@@ -97,7 +83,7 @@ class ClearObstacles(Task):
 
 	def reward(self):
 		weight_map = self.get_weight_map()
-		reward = self._get_reward(weight_map)
+		reward = self._get_reward(weight_map, self.area_list)
 
 		return reward, None
 
@@ -116,7 +102,7 @@ class ClearObstacles(Task):
 			"""Calculate action."""
 			# self._update_weight_map()
 
-			move_object = self.objects[self.grap_num]
+			move_object = self.objects[0]
 
 			base, pick_orin = p.getBasePositionAndOrientation(move_object)
 
@@ -132,12 +118,8 @@ class ClearObstacles(Task):
 
 
 			place_z = 0.04 + self.grip_z_offset
-			if base[1] > 0:
-				place_y = 0.22
 
-			else:
-				place_y = -0.22
-			place_pos = (base[0], place_y, place_z)
+			place_pos = (self.area_center[0], self.area_center[1], place_z)
 
 			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 

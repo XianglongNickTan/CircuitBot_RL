@@ -249,7 +249,7 @@ class TransporterAgent:
 
 class OriginalTransporterAgent(TransporterAgent):
 
-	def __init__(self, name, task, n_rotations=36):
+	def __init__(self, name, task, n_rotations=2):
 		super().__init__(name, task, n_rotations)
 
 		self.attention = Attention(
