@@ -1,6 +1,7 @@
 import collections
 import random
 
+import math
 import numpy as np
 from tasks.task import Task
 # from ravens.utils import utils
@@ -94,6 +95,7 @@ class ClearObstaclesTask(Task):
 
 
 
+
 	def reward(self, depth_map):
 		reward = 0
 
@@ -105,18 +107,23 @@ class ClearObstaclesTask(Task):
 		success_1, path_1, cost_1 = self.analyzer.get_result(0)
 		success_2, path_2, cost_2 = self.analyzer.get_result(1)
 
-		if success_1:
-			reward += 100
-			reward -= cost_1
+		min_cost_1 = self.euler_dist(0)
+		min_cost_2 = self.euler_dist(1)
 
-		if success_2:
-			reward += 100
-			reward -= cost_2
+		reward_1 = 5 ** ((min_cost_1 - cost_1) / min_cost_1) if success_1 else 0
+		reward_2 = 5 ** ((min_cost_2 - cost_2) / min_cost_2) if success_2 else 0
 
 		# self.analyzer.draw_map_3D()
 
-		print(reward)
-		return reward
+		print((reward_1 + reward_2) / 2)
+		return (reward_1 + reward_2) / 2
+
+
+	def euler_dist(self, no):
+		x = self.analyzer.path_planners[no].departure.x - self.analyzer.path_planners[no].destination.x
+		y = self.analyzer.path_planners[no].departure.y - self.analyzer.path_planners[no].destination.y
+		z = self.analyzer.path_planners[no].departure.z - self.analyzer.path_planners[no].destination.z
+		return math.sqrt(x ** 2 + y ** 2 + z ** 2) * 0.975
 
 
 	def done(self):

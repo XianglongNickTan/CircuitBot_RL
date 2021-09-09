@@ -25,8 +25,8 @@ from ravens import agents
 from ravens.dataset import Dataset
 import tensorflow as tf
 
-flags.DEFINE_string('train_dir', '.', '')
-flags.DEFINE_string('data_dir', './datasets', '')
+flags.DEFINE_string('train_dir', '../results', '')
+flags.DEFINE_string('data_dir', '../results/datasets', '')
 flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
 flags.DEFINE_string('agent', 'transporter', '')
 flags.DEFINE_float('hz', 240, '')
