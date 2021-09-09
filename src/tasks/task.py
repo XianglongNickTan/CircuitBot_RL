@@ -131,21 +131,20 @@ class Task:
 		min_cost_1 = self.euler_dist(0)
 		min_cost_2 = self.euler_dist(1)
 
-		reward_1 = 5 ** ((min_cost_1 - cost_1) / min_cost_1) if success_1 else 0
-		reward_2 = 5 ** ((min_cost_2 - cost_2) / min_cost_2) if success_2 else 0
+		reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
+		reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
+		reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
 
 		# self.analyzer.draw_map_3D()
 		# self.analyzer.draw_map_3D_only()
-
-		# print((reward_1 + reward_2) / 2)
-		return (reward_1 + reward_2) / 2
+		return reward
 
 
 	def euler_dist(self, no):
 		x = self.analyzer.path_planners[no].departure.x - self.analyzer.path_planners[no].destination.x
 		y = self.analyzer.path_planners[no].departure.y - self.analyzer.path_planners[no].destination.y
 		z = self.analyzer.path_planners[no].departure.z - self.analyzer.path_planners[no].destination.z
-		return math.sqrt(x ** 2 + y ** 2 + z ** 2) * 0.975
+		return math.sqrt(x ** 2 + y ** 2 + z ** 2) * 0.99
 
 
 	def get_color(self):

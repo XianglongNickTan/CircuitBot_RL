@@ -26,11 +26,11 @@ import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('root_dir', '.', '')
+flags.DEFINE_string('root_dir', '../results', '')
 flags.DEFINE_bool('disp', True, 'Whether to display the environment.')
-flags.DEFINE_string('task', 'insertion', 'The task to run.')
+flags.DEFINE_string('task', 'clear-one-obstacle', 'The task to run.')
 flags.DEFINE_string('agent', 'transporter', 'The agent to run.')
-flags.DEFINE_integer('n_demos', 100, 'Number of demos to run.')
+flags.DEFINE_integer('n_demos', 10, 'Number of demos to run.')
 
 
 def main(unused_argv):

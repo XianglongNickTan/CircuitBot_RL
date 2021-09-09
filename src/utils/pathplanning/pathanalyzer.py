@@ -15,7 +15,7 @@ class PathAnalyzer:
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.result = [PathResult(), PathResult()]
         self.min_slope = 0.3
-        self.max_slope = 0.5
+        self.max_slope = 1.0
 
     def set_map(self, array):
         self.map.read_fromNdArray(array)
@@ -50,6 +50,8 @@ class PathAnalyzer:
         self.result[1] = result_2
 
         print(time.time() - last)
+        self.draw_map_3D()
+        
     
     def get_result(self, no):
         return self.result[no].success, self.result[no].path, self.result[no].cost
@@ -80,7 +82,7 @@ class PathAnalyzer:
         fig,ax = plt.subplots(subplot_kw=dict(projection='3d'),figsize=(12,10))
         ax.plot_wireframe(X, Y, Z, cmap=plt.cm.gist_earth)
         
-        ax.set_zlim(0,5)
+        ax.set_zlim(0,40)
         pathT = np.transpose(self.result[0].path)  # [[1,2],[1,2],[1,2]...]
         Xp = pathT[0] #[[1,1,1,1,1], [2,2,2,2]...]
         Yp = pathT[1]
