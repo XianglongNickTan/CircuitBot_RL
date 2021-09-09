@@ -9,7 +9,6 @@ from ravens.dataset import Dataset
 
 import tasks
 from env.environment import Environment
-from tasks.clear_one_obstacle import ClearObstaclesTask
 
 flags.DEFINE_string('task', 'clear-one-obstacle', '')
 flags.DEFINE_string('data_dir', '../results/datasets', '')
@@ -30,7 +29,7 @@ def main(unused_argv):
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
       hz=FLAGS.hz)
-  task = tasks.names[FLAGS.task]()
+  task = tasks.names[FLAGS.task](env)
   task.mode = FLAGS.mode
 
   # Initialize scripted oracle agent and dataset.

@@ -25,7 +25,6 @@ from ravens import agents
 from ravens import dataset
 from ravens import tasks
 from env.environment import Environment
-from tasks.clear_one_obstacle import ClearObstaclesTask
 import tensorflow as tf
 
 flags.DEFINE_string('root_dir', '../results', '')
@@ -64,7 +63,7 @@ def main(unused_argv):
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
       hz=FLAGS.hz)
-  task = tasks.names[FLAGS.task]()
+  task = tasks.names[FLAGS.task](env)
   task.mode = 'test'
 
   # Load test dataset.
