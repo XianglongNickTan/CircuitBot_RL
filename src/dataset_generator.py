@@ -7,16 +7,18 @@ import numpy as np
 
 from ravens.dataset import Dataset
 
+import tasks
 from env.environment import Environment
 from tasks.clear_one_obstacle import ClearObstaclesTask
 
-flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
+flags.DEFINE_string('task', 'clear-one-obstacle', '')
 flags.DEFINE_string('data_dir', '../results/datasets', '')
 flags.DEFINE_bool('disp', False, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'test', '')
 flags.DEFINE_integer('n', 50, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
+flags.DEFINE_integer('hz', 240, '')
 
 FLAGS = flags.FLAGS
 
@@ -27,8 +29,8 @@ def main(unused_argv):
   env = Environment(
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
-      hz=240)
-  task = ClearObstaclesTask(env)
+      hz=FLAGS.hz)
+  task = tasks.names[FLAGS.task]()
   task.mode = FLAGS.mode
 
   # Initialize scripted oracle agent and dataset.

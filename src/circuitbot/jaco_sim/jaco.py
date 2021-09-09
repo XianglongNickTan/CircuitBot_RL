@@ -19,7 +19,7 @@ class Jaco:
                  reach_high=(1, 1, 1),  # Higher limit of the arm workspace.
                  randomize_arm=False,  # Whether arm initial position should be randomized.
                  urdf=jacoUrdf,  # Where to load the arm definition.
-                 use_realtime=False
+                 use_realtime=True
                  ):
         self.use_realtime = use_realtime
 

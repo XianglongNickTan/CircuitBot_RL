@@ -32,13 +32,14 @@ flags.DEFINE_string('root_dir', '../results', '')
 flags.DEFINE_string('data_dir', '../results/datasets', '')
 flags.DEFINE_bool('disp', True, '')
 flags.DEFINE_bool('shared_memory', False, '')
-flags.DEFINE_string('task', 'clear-one-obstacles-task', '')
+flags.DEFINE_string('task', 'clear-one-obstacle', '')
 flags.DEFINE_string('agent', 'transporter', '')
-flags.DEFINE_integer('n_demos', 10, '')
-flags.DEFINE_integer('n_steps', 100, '')
+flags.DEFINE_integer('n_demos', 100, '')
+flags.DEFINE_integer('n_steps', 1000, '')
 flags.DEFINE_integer('n_runs', 1, '')
 flags.DEFINE_integer('gpu', 0, '')
 flags.DEFINE_integer('gpu_limit', None, '')
+flags.DEFINE_integer('hz', 240, '')
 
 FLAGS = flags.FLAGS
 
@@ -62,8 +63,8 @@ def main(unused_argv):
   env = Environment(
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
-      hz=60)
-  task = ClearObstaclesTask(env)
+      hz=FLAGS.hz)
+  task = tasks.names[FLAGS.task]()
   task.mode = 'test'
 
   # Load test dataset.
