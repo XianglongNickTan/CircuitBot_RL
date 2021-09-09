@@ -56,6 +56,20 @@ OBJECTS = {
 }
 
 
+COLORS = {
+	'blue': [078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0],
+	'red': [255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0],
+	'green': [089.0 / 255.0, 169.0 / 255.0, 079.0 / 255.0],
+	'orange': [242.0 / 255.0, 142.0 / 255.0, 043.0 / 255.0],
+	'yellow': [237.0 / 255.0, 201.0 / 255.0, 072.0 / 255.0],
+	'purple': [176.0 / 255.0, 122.0 / 255.0, 161.0 / 255.0],
+	'pink': [255.0 / 255.0, 157.0 / 255.0, 167.0 / 255.0],
+	'cyan': [118.0 / 255.0, 183.0 / 255.0, 178.0 / 255.0],
+	'brown': [156.0 / 255.0, 117.0 / 255.0, 095.0 / 255.0],
+	'gray': [186.0 / 255.0, 176.0 / 255.0, 172.0 / 255.0]
+}
+
+
 class Task:
 	"""Base Task class."""
 
@@ -70,6 +84,7 @@ class Task:
 		self.env = env
 
 		self.obj_type = OBJECTS
+		self.color = COLORS
 		self.oracle_cams = cameras.Oracle.CONFIG
 
 		# Workspace bounds.
@@ -113,7 +128,7 @@ class Task:
 		# self.analyzer.draw_map_3D()
 		# self.analyzer.draw_map_3D_only()
 
-		print((reward_1 + reward_2) / 2)
+		# print((reward_1 + reward_2) / 2)
 		return (reward_1 + reward_2) / 2
 
 
@@ -286,8 +301,11 @@ class Task:
 		# if hasattr(self, 'goal'):
 		# goal_done = len(self.goal['steps']) == 0  # pylint:
 		# disable=g-explicit-length-test
-		return (len(self.goals) == 0) or (self._rewards > 0.99)  # pylint: disable=g-explicit-length-test
-		# return zone_done or defs_done or goal_done
+		# return (len(self.goals) == 0) or (self._rewards > 0.99)  # pylint: disable=g-explicit-length-test
+
+		return False  # pylint: disable=g-explicit-length-test
+
+	# return zone_done or defs_done or goal_done
 
 	#-------------------------------------------------------------------------
 	# Environment Helper Functions

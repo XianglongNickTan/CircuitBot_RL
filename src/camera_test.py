@@ -20,7 +20,6 @@ agent_cams = cameras.RealSenseD415.CONFIG
 pix_size = 0.005
 
 bounds = np.array([[0.1, 0.9], [-0.3, 0.3], [0, 0.3]])
-# bounds = np.array([[-0.3, 0.3], [0.1, 0.9], [0, 0.3]])
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
 rootdir += "/assets/blocks"
