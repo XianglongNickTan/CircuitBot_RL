@@ -9,7 +9,7 @@ from ravens.dataset import Dataset
 
 from env.environment import Environment
 # from tasks.clear_one_obstacle import ClearOneObstacle
-from tasks.clear_obstacles import ClearObstacles
+import tasks
 
 
 
@@ -19,7 +19,7 @@ flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
 flags.DEFINE_integer('n', 100, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
-flags.DEFINE_string('task', 'clear_obstacles', '')
+flags.DEFINE_string('task', 'clear-obstacles', '')
 
 FLAGS = flags.FLAGS
 
@@ -31,7 +31,7 @@ def main(unused_argv):
       disp=FLAGS.disp,
       shared_memory=FLAGS.shared_memory,
       hz=240)
-  task = ClearObstacles(env)
+  task = tasks.names[FLAGS.task](env)
   task.mode = FLAGS.mode
 
   # Initialize scripted oracle agent and dataset.
