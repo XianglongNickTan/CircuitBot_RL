@@ -1,7 +1,5 @@
 import numpy as np
 import math
-from utils.pathplanning.pathnode import PathNode
-from utils.pathplanning.pathnode import PathIterator
 from utils.pathplanning.helper import Coordination
 from utils.pathplanning.helper import Node
 from utils.pathplanning.helper import SearchQueue
@@ -46,144 +44,113 @@ class PathPlanner:
         self.open_list = SearchQueue()
         self.close_list = np.zeros((self.get_map().height, self.get_map().width), dtype=bool)
         self.node_searched = 0
-
-        start_node = PathNode(self.departure.x, self.departure.y, self.departure.z, self)
+        
+        start_node = Node(self.departure.x, self.departure.y, self.departure.z, self.get_map(), 0, self.calc_pred(self.departure), None)
         self.open_list.push(start_node)
+        
         self.expand()
         result = start_node
+
+        count = 0
+        
         while not self.open_list.is_empty():
             node_to_open = self.open_list.top()
-            if node_to_open.x == self.destination.x and node_to_open.y == self.destination.y:
+            if node_to_open.get_pos() == (self.destination.x, self.destination.y):
                 result = node_to_open
-                self.reached = True
-                break
+                path = []
+                path.append(result.get_pos())
+                total_cost = result.cost
+                node_iterator = NodeIterator(result)
+                for pos, cost in node_iterator:
+                    path.append(pos)
+                    total_cost += cost
+                self.path = path
+                self.cost = total_cost
+                return PathResult(True, path, total_cost)
+            count += 1
             self.expand()
 
-        if self.reached:
-            resultNodes = []
-            path = []
-            total_cost = 0
-
-            resultNodes.append(result.get_pos())
-            self.resultnode = result
-            path += result.path
-            total_cost += result.cost
-            path_iterator = PathIterator(result)
-            for pos, cost, _path in path_iterator:
-                resultNodes.append(pos)
-                path += _path
-                total_cost += cost
+        return PathResult()
     
-            self.path = path
-            self.cost = total_cost
-            self.pathnodes = resultNodes
-            
-            return True
+    def calc_cost(self, pos, new_pos):
+        if pos.x != new_pos.x and pos.y != new_pos.y:
+            horizon_dist = 1.414 * self.get_map().grid_size
         else:
-            return False
-        self.node_searched = 0
+            horizon_dist = 1 * self.get_map().grid_size
+        cost = math.sqrt(
+            horizon_dist ** 2 + (pos.z - new_pos.z) ** 2)
+        return cost
 
-    def expand(self):
-        node_to_open = self.open_list.pop()
-        node_list = self.get_new_nodes(node_to_open)
-        for new_node, isStepping in node_list:
-            if not self.in_close_list(new_node):
-                if self.open_list.in_list(new_node):
-                    path_from_current_node_result = node_to_open.calc_path(node_to_open, new_node) 
-                    path_from_parent_node_result  = node_to_open.calc_path(node_to_open.parent, new_node)
-                    if path_from_current_node_result.success and path_from_parent_node_result.success:
-                        if path_from_parent_node_result.cost <= (path_from_current_node_result.cost + node_to_open.cost):
-                            self.open_list.del_node(new_node)
-                            new_node = PathNode(new_node.x, new_node.y, new_node.z, self,
-                                                cost = path_from_parent_node_result.cost, pred = self.calc_pred(new_node),
-                                                path = path_from_parent_node_result.path, 
-                                                isStepping = isStepping, parent = node_to_open.parent)
-                            self.open_list.push(new_node)
-                else:
-                    path_from_current_node_result = node_to_open.calc_path(node_to_open, new_node)
-                    if path_from_current_node_result.success:
-                        new_node = PathNode(new_node.x, new_node.y, new_node.z, self,
-                                            cost = path_from_current_node_result.cost,
-                                            pred = self.calc_pred(new_node), path = path_from_current_node_result.path, 
-                                            isStepping = isStepping, parent = node_to_open)
-                        self.open_list.push(new_node)
+    def calc_pred(self, location):
+        grid_size = self.get_map().grid_size
+        horizon_dist = math.sqrt(
+            ((location.x - self.destination.x) * grid_size) ** 2 + ((location.y - self.destination.y) * grid_size) ** 2)
+        height_dist = abs(location.z - self.destination.z)
+        pred = math.sqrt(horizon_dist ** 2 + height_dist ** 2)
+        return pred
 
-        self.close_list[node_to_open.y, node_to_open.x] = True
-        self.node_searched += 1
-
-    def in_close_list(self, new_pos):
-        return self.close_list[new_pos.y, new_pos.x] == True
-
-    def get_new_nodes(self, location):
-        pos_list = []
-
-        if abs(location.z - self.destination.z) < self.analyzer.min_slope:
-            pos_list.append((self.get_map().get_coordination(self.destination.x, self.destination.y), False))
-
-        # vals = self.get_map().dem_map - location.z
-        # diffs = np.absolute(vals)
-        # temps = np.where((self.analyzer.min_slope < diffs) & (diffs < self.analyzer.max_slope))
-        # slope_pts = np.flip(np.transpose(temps), axis = 1)
-
-        # count = 0
-        # for slope_pt in slope_pts.tolist():
-        #     if (slope_pt[0], slope_pt[1]) in self.obstacles:
-        #         continue
-        #     if vals[slope_pt[1]][slope_pt[0]] > 0:
-        #         stop = self.find_slope_destination(self.get_map().get_coordination(slope_pt[0],slope_pt[1]), True)
-        #     else:
-        #         stop = self.find_slope_destination(self.get_map().get_coordination(slope_pt[0],slope_pt[1]), False)
-
-        #     if (stop.x, stop.y) in self.obstacles:
-        #         continue
-        #     count += 1
-        #     pos_list.append((self.get_map().get_coordination(stop.x, stop.y), True))
-
-        return pos_list
-    
-    def find_slope_destination(self, slope_pt, isStepOn):
-        start_pt = slope_pt
-        searched = SearchQueue()
-        searched.list.append(start_pt)
-        result = start_pt
-
-        while not searched.is_empty():
-            result = searched.pop()
-            for item in self.find_further_slope_pts(result, isStepOn):
-                searched.list.append(item)
-            # print(str(result.x) + " " + str(result.y) + " " + str(result.z))
-        return result
-
-    def find_further_slope_pts(self, slope_pt, isStepOn):
+    def get_new_position(self, location):
         offsets = [(-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
         pos_list = []
         for offset in offsets:
-            pos = slope_pt
+            pos = location.get_coordination(self.get_map())
             new_pos = Coordination(pos.x + offset[0], pos.y + offset[1])
-
             if new_pos.x < 0 or new_pos.x >= self.get_map().width or new_pos.y < 0 or new_pos.y >= self.get_map().height:
                 continue
             new_pos = self.get_map().get_coordination(new_pos.x, new_pos.y)
-            if isStepOn:
-                if (new_pos.z - pos.z) > self.analyzer.max_slope or (new_pos.z - pos.z) <= 0:
-                    continue
-            else:
-                if (pos.z - new_pos.z) > self.analyzer.max_slope or (pos.z - new_pos.z) <= 0:
+
+            if abs(pos.z - new_pos.z) > self.analyzer.max_slope:
+                continue
+
+            if len(self.obstacles) != 0:
+                if (new_pos.x, new_pos.y) in self.obstacles:
                     continue
             pos_list.append(new_pos)
         return pos_list
-    
-    def calc_cost(self, node):
-        pass
-    
-    def calc_pred(self, node):
-        grid_size = self.get_map().grid_size
-        horizon_dist = math.sqrt(
-            ((node.x - self.destination.x) * grid_size) ** 2 + ((node.y - self.destination.y) * grid_size) ** 2)
-        height_dist = abs(node.z - self.destination.z)
-        pred = math.sqrt(horizon_dist ** 2 + height_dist ** 2)
-        return pred
-    
 
+    def expand(self):
+        node_to_open = self.open_list.pop()
+        pos_list = self.get_new_position(node_to_open)
+        for new_pos in pos_list:
+            if not self.in_close_list(new_pos):
+                if self.open_list.in_list(new_pos):
+                    cost_from_current_node = self.calc_cost(node_to_open.get_coordination(self.get_map()), new_pos) + node_to_open.cost
+                    cost_from_parent_node  = self.calc_cost(new_pos, node_to_open.parent.get_coordination(self.get_map()))
+                    if cost_from_parent_node <= cost_from_current_node:
+                        self.open_list.del_node(new_pos)
+                        new_node = Node(new_pos.x, new_pos.y, new_pos.z, self.get_map(), cost_from_parent_node, self.calc_pred(new_pos),
+                                            node_to_open.parent)
+                        self.open_list.push(new_node)
+                else:
+                    new_node = Node(new_pos.x, new_pos.y, new_pos.z, self.get_map(), self.calc_cost(node_to_open.get_coordination(self.get_map()), new_pos),
+                                        self.calc_pred(new_pos), node_to_open)
+                    self.open_list.push(new_node)
 
+        self.close_list[node_to_open.y, node_to_open.x] = True
+        self.node_searched += 1
+    
+    def in_close_list(self, new_pos):
+        return self.close_list[new_pos.y, new_pos.x] == True
 
+class PathResult:
+    def __init__(self, success = False, path = [], cost = -1):
+        self.success = success
+        self.path = path
+        self.cost = cost
+
+    def __str__(self):
+        return str(self.success) + str(self.path) + str(self.cost)
+
+class PathIterator(NodeIterator):
+    def __init__(self, node):
+        self.node = node
+        
+    def __next__(self):
+        if self.node.parent is not None:
+            self.node = self.node.parent
+            return self.node.get_pos(), self.node.cost, self.node.path
+        else:
+            raise StopIteration
+
+    def __iter__(self):
+        return self

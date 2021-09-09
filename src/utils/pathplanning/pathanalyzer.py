@@ -7,6 +7,7 @@ from matplotlib import cm
 
 from utils.pathplanning.map import Map
 from utils.pathplanning.pathplanner import PathPlanner
+from utils.pathplanning.pathplanner import PathResult
 
 class PathAnalyzer:
     def __init__(self):
@@ -14,7 +15,7 @@ class PathAnalyzer:
         self.path_planners = [PathPlanner(self), PathPlanner(self)]
         self.result = [PathResult(), PathResult()]
         self.min_slope = 0.3
-        self.max_slope = 1
+        self.max_slope = 0.5
 
     def set_map(self, array):
         self.map.read_fromNdArray(array)
@@ -37,24 +38,16 @@ class PathAnalyzer:
 
     def search(self):
         last = time.time()
-        success1 = self.path_planners[0].search()
 
-        if success1:
+        result_1 = self.path_planners[0].search()
+        result_2 = PathResult()
+
+        if result_1.success:
             self.path_planners[1].add_obstacles(self.path_planners[0].obstacles + self.path_planners[0].path)            
-            success2 = self.path_planners[1].search()
-            if success2:
-                self.result[0] = PathResult(True, self.path_planners[0].path, self.path_planners[0].cost)
-                self.result[1] = PathResult(True, self.path_planners[1].path, self.path_planners[1].cost)
-            else:
-                self.result[0] = PathResult(True, self.path_planners[0].path, self.path_planners[0].cost)
-                self.result[1] = PathResult(False, [], -1)
+            result_2 = self.path_planners[1].search()
 
-        else:
-            self.result[0] = PathResult(False, [], -1)
-            self.result[1] = PathResult(False, [], -1)
-
-        self.path_planners[0].obstacles.clear()
-        self.path_planners[1].obstacles.clear()
+        self.result[0] = result_1
+        self.result[1] = result_2
 
         print(time.time() - last)
     
@@ -87,17 +80,17 @@ class PathAnalyzer:
         fig,ax = plt.subplots(subplot_kw=dict(projection='3d'),figsize=(12,10))
         ax.plot_wireframe(X, Y, Z, cmap=plt.cm.gist_earth)
         
-        ax.set_zlim(0,40)
-        pathT = np.transpose(self.path_planners[0].path)  # [[1,2],[1,2],[1,2]...]
+        ax.set_zlim(0,5)
+        pathT = np.transpose(self.result[0].path)  # [[1,2],[1,2],[1,2]...]
         Xp = pathT[0] #[[1,1,1,1,1], [2,2,2,2]...]
         Yp = pathT[1]
-        Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.path_planners[0].path]
+        Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[0].path]
         ax.scatter(Xp,Yp,Zp,c='g',s=200)
 
-        pathT2 = np.transpose(self.path_planners[1].path)
+        pathT2 = np.transpose(self.result[1].path)
         Xp2 = pathT2[0]
         Yp2 = pathT2[1]
-        Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.path_planners[1].path]
+        Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[1].path]
         ax.scatter(Xp2,Yp2,Zp2,c='b',s=200)
 
         plt.show()
@@ -124,14 +117,3 @@ class PathAnalyzer:
         ax.scatter(Xp3,Yp3,Zp3,c='r',s=800)
 
         plt.show()
-
-        
-
-class PathResult():
-    def __init__(self, success = False, path = [], cost = -1):
-        self.success = success
-        self.path = path
-        self.cost = cost
-
-    def __str__(self):
-        return str(self.success) + str(self.path) + str(self.cost)

@@ -15,7 +15,7 @@ import pybullet as p
 from tasks.task import Task
 
 
-class ClearObstaclesTask(Task):
+class ClearOneObstacle(Task):
 	""" remove one cube in the path"""
 
 	def __init__(self,
