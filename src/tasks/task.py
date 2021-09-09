@@ -57,17 +57,19 @@ OBJECTS = {
 
 
 COLORS = {
-	'blue': [078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0],
-	'red': [255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0],
-	'green': [089.0 / 255.0, 169.0 / 255.0, 079.0 / 255.0],
-	'orange': [242.0 / 255.0, 142.0 / 255.0, 043.0 / 255.0],
-	'yellow': [237.0 / 255.0, 201.0 / 255.0, 072.0 / 255.0],
-	'purple': [176.0 / 255.0, 122.0 / 255.0, 161.0 / 255.0],
-	'pink': [255.0 / 255.0, 157.0 / 255.0, 167.0 / 255.0],
-	'cyan': [118.0 / 255.0, 183.0 / 255.0, 178.0 / 255.0],
-	'brown': [156.0 / 255.0, 117.0 / 255.0, 095.0 / 255.0],
-	'gray': [186.0 / 255.0, 176.0 / 255.0, 172.0 / 255.0]
+	'blue': [078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0, 1],
+	'red': [255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
+	'green': [089.0 / 255.0, 169.0 / 255.0, 079.0 / 255.0, 1],
+	'orange': [242.0 / 255.0, 142.0 / 255.0, 043.0 / 255.0, 1],
+	'yellow': [237.0 / 255.0, 201.0 / 255.0, 072.0 / 255.0, 1],
+	'purple': [176.0 / 255.0, 122.0 / 255.0, 161.0 / 255.0, 1],
+	'pink': [255.0 / 255.0, 157.0 / 255.0, 167.0 / 255.0, 1],
+	'cyan': [118.0 / 255.0, 183.0 / 255.0, 178.0 / 255.0, 1],
+	'brown': [156.0 / 255.0, 117.0 / 255.0, 095.0 / 255.0, 1],
+	'gray': [186.0 / 255.0, 176.0 / 255.0, 172.0 / 255.0, 1]
 }
+
+
 
 
 class Task:
@@ -98,8 +100,9 @@ class Task:
 
 		self.objects = []
 		self.electrodeID = []
+		self.nono_area = []
 
-		self.pick_threshold = 0.05  ## m
+		self.pick_threshold = 0.03  ## m
 		self.grip_z_offset = 0.07
 
 
@@ -110,6 +113,12 @@ class Task:
 		self.goals = []
 		self.progress = 0
 		self._rewards = 0
+		self.color_list = []
+
+		self.get_color()
+
+		self.obj_color = None
+
 
 
 	def _get_reward(self, weight_map):
@@ -137,6 +146,17 @@ class Task:
 		y = self.analyzer.path_planners[no].departure.y - self.analyzer.path_planners[no].destination.y
 		z = self.analyzer.path_planners[no].departure.z - self.analyzer.path_planners[no].destination.z
 		return math.sqrt(x ** 2 + y ** 2 + z ** 2) * 0.975
+
+
+	def get_color(self):
+		color = self.color.values()
+		for i in color:
+			self.color_list.append(i)
+
+
+	def set_color(self):
+		color_num = random.randint(0, 9)
+		return self.color_list[color_num]
 
 
 	def compare_object_base(self, pick_pos, object_list):
@@ -280,6 +300,34 @@ class Task:
 		                           [power_white_ele[0], power_white_ele[1]])
 
 
+	def add_nono_area(self, analyzer, top_left, bottom_right):
+		""" 1:1 pixel location"""
+
+		length = bottom_right[0] - top_left[0] + 1
+		width = bottom_right[1] - top_left[1] + 1
+
+		center_x = (bottom_right[0] + top_left[0]) / 2
+		center_y = (bottom_right[1] + top_left[1]) / 2
+
+		utils.create_obj(p.GEOM_BOX,
+		           mass=-1,
+		           halfExtents=[length / 2, width / 2, 0.0001],
+		           rgbaColor=[1, 0, 0, 1],
+		           basePosition=[center_x, center_y, 0.01],
+		           baseOrientation=[0, 0, 0, 1],
+                   object_list=self.nono_area
+		           )
+
+		top_left_pix = utils.xyz_to_pix([top_left[0], top_left[1], 0], self.bounds, self.pix_size)
+
+		ob_list = []
+
+		for i in range(int(length*100)):
+			for j in range(int(width*100)):
+				point = (top_left_pix[0] + j, top_left_pix[1] + i)
+				ob_list.append(point)
+
+		analyzer.set_obstacles(ob_list)
 
 
 

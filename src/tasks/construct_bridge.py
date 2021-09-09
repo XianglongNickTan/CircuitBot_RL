@@ -90,13 +90,16 @@ class ClearObstacles(Task):
 			p.removeBody(object)
 		self.electrodeID = []
 
+		for object in self.nono_area:
+			p.removeBody(object)
+		self.nono_area = []
 	#
+
 	def reward(self):
 		weight_map = self.get_weight_map()
 		reward = self._get_reward(weight_map)
 
 		return reward, None
-
 
 
 	def reset(self):
