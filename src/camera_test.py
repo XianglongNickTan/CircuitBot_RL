@@ -10,16 +10,20 @@ import numpy as np
 
 from tasks import cameras
 from utils.pathplanning.pathanalyzer import PathAnalyzer
-
+from circuitbot.jaco_sim.jaco import Jaco
 
 analyzer = PathAnalyzer()
 
 
 agent_cams = cameras.RealSenseD415.CONFIG
 # agent_cams = cameras.Oracle.CONFIG
+pix_size = 0.005
+
+bounds = np.array([[0.1, 0.9], [-0.3, 0.3], [0, 0.3]])
+# bounds = np.array([[-0.3, 0.3], [0.1, 0.9], [0, 0.3]])
 
 rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-rootdir += "/assets"
+rootdir += "/assets/blocks"
 
 
 obj_cube = rootdir + "/cube_4.obj"
@@ -41,7 +45,7 @@ OBJECTS = {
 	'triangular_prism': obj_triangular_prism
 }
 
-
+in_shape = (120, 160, 6)
 
 
 p.connect(p.GUI)
@@ -161,18 +165,72 @@ def render_camera(config):
 	return color, depth, segm
 
 
+def _get_obs():
+	# Get RGB-D camera image observations.
+	obs = {'color': (), 'depth': ()}
+	for config in agent_cams:
+		color, depth, _ = render_camera(config)
+		obs['color'] += (color,)
+		obs['depth'] += (depth,)
+
+	return obs
+
+
+def get_image(obs):
+	"""Stack color and height images image."""
+
+	# if use_goal_image:
+	#   colormap_g, heightmap_g = utils.get_fused_heightmap(goal, configs)
+	#   goal_image = concatenate_c_h(colormap_g, heightmap_g)
+	#   input_image = np.concatenate((input_image, goal_image), axis=2)
+	#   assert input_image.shape[2] == 12, input_image.shape
+
+	# Get color and height maps from RGB-D images.
+	cmap, hmap = utils.get_fused_heightmap(
+			obs, agent_cams, bounds, pix_size)
+	img = np.concatenate((cmap,
+												hmap[Ellipsis, None],
+												hmap[Ellipsis, None],
+												hmap[Ellipsis, None]), axis=2)
+	assert img.shape == in_shape, img.shape
+	return img
+
+
+
+def get_true_image():
+	"""Get RGB-D orthographic heightmaps and segmentation masks."""
+
+	# Capture near-orthographic RGB-D images and segmentation masks.
+	color, depth, segm = render_camera(agent_cams[0])
+
+	# Combine color with masks for faster processing.
+	color = np.concatenate((color, segm[Ellipsis, None]), axis=2)
+
+	# Reconstruct real orthographic projection from point clouds.
+	hmaps, cmaps = utils.reconstruct_heightmaps(
+		[color], [depth], agent_cams, bounds, pix_size)
+
+	# Split color back into color and masks.
+	cmap = np.uint8(cmaps)[0, Ellipsis, :3]
+	hmap = np.float32(hmaps)[0, Ellipsis]
+	mask = np.int32(cmaps)[0, Ellipsis, 3:].squeeze()
+	return cmap, hmap, mask
+
+
+arm = Jaco()
+
 for _ in range(100):
 	p.stepSimulation()
 
 
 for _ in range(10000):
-	color, depth, msk = render_camera(agent_cams[2])
-	dsize = (80, 80)
+	obs = _get_obs()
+	img = get_image(obs)
 
-	depth = cv2.resize(depth, dsize)
-	analyzer.set_map(depth)
-	# analyzer.draw_map_3D_only()
-	cv2.imshow('test', color)
+	# color, depth, msk = render_camera(agent_cams[0])
+	# color, depth, msk = get_true_image()
+
+	cv2.imshow('test', img[:,:,3]*30)
 	cv2.waitKey(1)
 	p.stepSimulation()
 	time.sleep(1/240)

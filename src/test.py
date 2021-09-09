@@ -24,7 +24,7 @@ import numpy as np
 from ravens import agents
 from ravens import dataset
 from ravens import tasks
-from env.environment import Environment
+from env.environment_old import Environment
 from tasks.clear_one_obstacle import ClearObstaclesTask
 import tensorflow as tf
 

@@ -1,4 +1,4 @@
-z'z'z'zimport os, sys
+import os, sys
 
 from absl import app
 from absl import flags
@@ -9,7 +9,7 @@ import numpy as np
 
 from ravens.dataset import Dataset
 
-from env.environment import Environment
+from env.environment_old import Environment
 # from tasks.clear_obstacles import ClearObstaclesTask
 from tasks.clear_obstacles import ClearObstaclesTask
 from utils.pathplanning.pathanalyzer import PathAnalyzer

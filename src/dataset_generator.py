@@ -7,7 +7,7 @@ import numpy as np
 
 from ravens.dataset import Dataset
 
-from env.environment import Environment
+from env.environment_old import Environment
 from tasks.clear_one_obstacle import ClearObstaclesTask
 
 flags.DEFINE_string('task', 'clear-one-obstacles-task', '')

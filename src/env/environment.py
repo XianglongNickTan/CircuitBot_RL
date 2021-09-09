@@ -1,135 +1,164 @@
-import pybullet as p
-import time
-import cv2
-import numpy as np
-import pybullet_data
-from gym import spaces, Env
+# coding=utf-8
+# Copyright 2021 The Ravens Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Environment class."""
+
+import os
+import pkgutil
 import sys
+import tempfile
+import time
 
-
-from tasks.cameras import DaBai
+import gym
+import numpy as np
+from tasks import cameras
+from ravens.utils import pybullet_utils
 from utils import utils
 
-# from tasks.cameras import RealSenseD415
-
-sys.path.insert(1, "../bullet3/build_cmake/examples/pybullet")
-timeStep = 1 / 240.0
+import pybullet as p
 
 
-np.set_printoptions(precision=2, floatmode='fixed', suppress=True)
+JACO_WORKSPACE_URDF_PATH = 'ur5/workspace.urdf'
+PLANE_URDF_PATH = 'plane/plane.urdf'
 
+assets_root = '/assets'
 
-class Environment(Env):
+class Environment(gym.Env):
+	"""OpenAI Gym-style environment class."""
+
 	def __init__(self,
-				 done_after=10000,
-				 disp=True,
-				 hz=240,
-				 shared_memory=False,
-				 use_egl=False,
-				 task=None
-				 ):
+							 assets_root=assets_root,
+							 task=None,
+							 disp=False,
+							 shared_memory=False,
+							 hz=240,
+							 use_egl=False):
+		"""Creates OpenAI Gym-style environment with PyBullet.
 
-		### pybullet setting ###
-		if disp:
-			physics_client = p.connect(p.GUI)
-		else:
-			physics_client = p.connect(p.DIRECT)
+		Args:
+			assets_root: root directory of assets.
+			task: the task to use. If None, the user must call set_task for the
+				environment to work properly.
+			disp: show environment with PyBullet's built-in display viewer.
+			shared_memory: run with shared memory.
+			hz: PyBullet physics simulation step speed. Set to 480 for deformables.
+			use_egl: Whether to use EGL rendering. Only supported on Linux. Should get
+				a significant speedup in rendering when using.
 
-		p.setAdditionalSearchPath(pybullet_data.getDataPath())
-		p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
+		Raises:
+			RuntimeError: if pybullet cannot load fileIOPlugin.
+		"""
+		if use_egl and disp:
+			raise ValueError('EGL rendering cannot be used with `disp=True`.')
 
-		p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-		p.setPhysicsEngineParameter(enableFileCaching=0)
-		p.setTimeStep(1. / hz)
+		self.pix_size = 0.005
+		self.obj_ids = {'fixed': [], 'rigid': [], 'deformable': []}
+		self.agent_cams = cameras.RealSenseD415.CONFIG
 
-		### map settings ###
-		### x - row - height
-		### y - colomn - widthz
+		self.assets_root = assets_root
 
-
-
-		### robot pick place settings ###
-		self.reach_x = [0.30, 0.68]
-		self.reach_y = [-0.2, 0.2]
-		self.reach_z = [0.06, 0.4]
-
-
-		### training settings ###
-		self.numSteps = 0
-		self.doneAfter = done_after
-
-
-		### print env settings ###
-
-		### fake camera ###
-		self.agent_cams = DaBai.CONFIG
-
-		# color_tuple = [
-		#     spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
-		#     for config in self.agent_cams
-		# ]
-		# depth_tuple = [
-		#     spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
-		#     for config in self.agent_cams
-		# ]
-		#
-		# self.observation_space = spaces.Dict({
-		#     'color': spaces.Tuple(color_tuple),
-		#     'depth': spaces.Tuple(depth_tuple),
-		# })
-
-
-		self.position_bounds = spaces.Box(
-			low=np.array([0.25, -0.5, 0.], dtype=np.float32),
-			high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
-			shape=(3,),
-			dtype=np.float32)
-		self.action_space = spaces.Dict({
-			'pose0':
-				spaces.Tuple(
-					(self.position_bounds,
-					 spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32))),
-			'pose1':
-				spaces.Tuple(
-					(self.position_bounds,
-					 spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)))
+		color_tuple = [
+				gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
+				for config in self.agent_cams
+		]
+		depth_tuple = [
+				gym.spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
+				for config in self.agent_cams
+		]
+		self.observation_space = gym.spaces.Dict({
+				'color': gym.spaces.Tuple(color_tuple),
+				'depth': gym.spaces.Tuple(depth_tuple),
+		})
+		self.position_bounds = gym.spaces.Box(
+				low=np.array([0.4, -0.25, 0.], dtype=np.float32),
+				high=np.array([0.8, 0.25, 0.28], dtype=np.float32),
+				shape=(3,),
+				dtype=np.float32)
+		self.action_space = gym.spaces.Dict({
+				'pose0':
+						gym.spaces.Tuple(
+								(self.position_bounds,
+								 gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32))),
+				'pose1':
+						gym.spaces.Tuple(
+								(self.position_bounds,
+								 gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)))
 		})
 
+		# Start PyBullet.
+		disp_option = p.DIRECT
+		if disp:
+			disp_option = p.GUI
+			if shared_memory:
+				disp_option = p.SHARED_MEMORY
+		client = p.connect(disp_option)
+		file_io = p.loadPlugin('fileIOPlugin', physicsClientId=client)
+		if file_io < 0:
+			raise RuntimeError('pybullet: cannot load FileIO!')
+		if file_io >= 0:
+			p.executePluginCommand(
+					file_io,
+					textArgument=assets_root,
+					intArgs=[p.AddFileIOAction],
+					physicsClientId=client)
+
+		self._egl_plugin = None
+		if use_egl:
+			assert sys.platform == 'linux', ('EGL rendering is only supported on '
+																			 'Linux.')
+			egl = pkgutil.get_loader('eglRenderer')
+			if egl:
+				self._egl_plugin = p.loadPlugin(egl.get_filename(),
+																				'_eglRendererPlugin')
+			else:
+				self._egl_plugin = p.loadPlugin('eglRendererPlugin')
+			print('EGL renderering enabled.')
+
+		p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+		p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
+		p.setPhysicsEngineParameter(enableFileCaching=0)
+		p.setAdditionalSearchPath(assets_root)
+		p.setAdditionalSearchPath(tempfile.gettempdir())
+		p.setTimeStep(1. / hz)
+
+		# If using --disp, move default camera closer to the scene.
+		if disp:
+			target = p.getDebugVisualizerCamera()[11]
+			p.resetDebugVisualizerCamera(
+					cameraDistance=1.1,
+					cameraYaw=90,
+					cameraPitch=-25,
+					cameraTargetPosition=target)
 
 
-
-
-
-
-		### action = [x, y, x, y, ori] ###
-		# self.action_space = spaces.Box(
-		# 	low=np.array([22*self.pixel_ratio, 8*self.pixel_ratio, 22*self.pixel_ratio, 8*self.pixel_ratio, 0]) ,
-		# 	high=np.array([58*self.pixel_ratio, 47*self.pixel_ratio, 58*self.pixel_ratio, 47*self.pixel_ratio, 1]),
-		# 	dtype=np.int)
-
-		p.setGravity(0, 0, -10)
-
-
-		### init map ###
 		self.init_sim()
-
 
 		if task:
 			self.set_task(task)
 
+	def init_sim(self):
+		pybullet_utils.load_urdf(p, os.path.join(self.assets_root, PLANE_URDF_PATH),
+														 [0, 0, -0.001])
 
-		self.objects = []
-
-
-
-	def set_task(self, task):
-		self.task = task
-
-
-
-
-	def close(self):
-		p.disconnect()
+		utils.create_obj(p.GEOM_BOX,
+						mass=-1,
+						halfExtents=[0.4, 0.3, 0.005],
+						rgbaColor=[1, 0.90, 0.72, 1],
+						basePosition=[0.5, 0, 0.005],
+						baseOrientation=[0, 0, 0, 1]
+						)
 
 
 	def is_static(self, object):
@@ -138,10 +167,82 @@ class Environment(Env):
 			 for i in object]
 		return all(np.array(v) < 5e-3)
 
+	def add_object(self, urdf, pose, category='rigid'):
+		"""List of (fixed, rigid, or deformable) objects in env."""
+		fixed_base = 1 if category == 'fixed' else 0
+		obj_id = pybullet_utils.load_urdf(
+				p,
+				os.path.join(self.assets_root, urdf),
+				pose[0],
+				pose[1],
+				useFixedBase=fixed_base)
+		self.obj_ids[category].append(obj_id)
+		return obj_id
+
+	#---------------------------------------------------------------------------
+	# Standard Gym Functions
+	#---------------------------------------------------------------------------
 
 	def seed(self, seed=None):
 		self._random = np.random.RandomState(seed)
 		return seed
+
+
+	def reset(self):
+		"""Performs common reset functionality for all supported tasks."""
+		if not self.task:
+			raise ValueError('environment task must be set. Call set_task or pass '
+											 'the task arg in the environment constructor.')
+		self.obj_ids = {'fixed': [], 'rigid': [], 'deformable': []}
+		p.setGravity(0, 0, -9.8)
+
+		# Temporarily disable rendering to load scene faster.
+		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+
+
+		# Reset task.
+		self.task.reset()
+
+		# Re-enable rendering.
+		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
+
+		obs, _, _, _ = self.step()
+		return obs
+
+
+
+	def step(self, action=None):
+		"""Execute action with specified primitive.
+
+		Args:
+			action: action to execute.
+
+		Returns:
+			(obs, reward, done, info) tuple containing MDP step data.
+		"""
+		if action is not None:
+			self.task.apply_action(action)
+
+
+		# Step simulator asynchronously until objects settle.
+		while not self.is_static(self.task.objects):
+			p.stepSimulation()
+
+		# Get task rewards.
+		reward, info = self.task.reward() if action is not None else (0, {})
+		done = self.task.done()
+
+		# Add ground truth robot state into info.
+		# info.update(self.info)
+
+		obs = self._get_obs()
+
+		return obs, reward, done, info
+
+	def close(self):
+		if self._egl_plugin is not None:
+			p.unloadPlugin(self._egl_plugin)
+		p.disconnect()
 
 	def render(self, mode='rgb_array'):
 		# Render only the color image from the first camera.
@@ -151,8 +252,9 @@ class Environment(Env):
 		color, _, _ = self.render_camera(self.agent_cams[0])
 		return color
 
-
 	def render_camera(self, config):
+		"""Render RGB-D image with specified camera configuration."""
+
 		# OpenGL camera settings.
 		lookdir = np.float32([0, 0, 1]).reshape(3, 1)
 		updir = np.float32([0, -1, 0]).reshape(3, 1)
@@ -167,25 +269,21 @@ class Environment(Env):
 		fovh = (config['image_size'][0] / 2) / focal_len
 		fovh = 180 * np.arctan(fovh) * 2 / np.pi
 
-
 		# Notes: 1) FOV is vertical FOV 2) aspect must be float
 		aspect_ratio = config['image_size'][1] / config['image_size'][0]
 		projm = p.computeProjectionMatrixFOV(fovh, aspect_ratio, znear, zfar)
 
 		# Render with OpenGL camera settings.
 		_, _, color, depth, segm = p.getCameraImage(
-			width=config['image_size'][1],
-			height=config['image_size'][0],
-			viewMatrix=viewm,
-			projectionMatrix=projm,
-			shadow=0,
-			flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX,
-			# Note when use_egl is toggled, this option will not actually use openGL
-			# but EGL instead.
-			renderer=p.ER_BULLET_HARDWARE_OPENGL)
-
-
-		width_clip = int(24 * (config['image_size'][0] / 160))
+				width=config['image_size'][1],
+				height=config['image_size'][0],
+				viewMatrix=viewm,
+				projectionMatrix=projm,
+				shadow=1,
+				flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX,
+				# Note when use_egl is toggled, this option will not actually use openGL
+				# but EGL instead.
+				renderer=p.ER_BULLET_HARDWARE_OPENGL)
 
 		# Get color image.
 		color_image_size = (config['image_size'][0], config['image_size'][1], 4)
@@ -195,67 +293,19 @@ class Environment(Env):
 			color = np.int32(color)
 			color += np.int32(self._random.normal(0, 3, config['image_size']))
 			color = np.uint8(np.clip(color, 0, 255))
-		# color = color[:, width_clip:-width_clip, :]
 
 		# Get depth image.
 		depth_image_size = (config['image_size'][0], config['image_size'][1])
 		zbuffer = np.array(depth).reshape(depth_image_size)
-		# depth = (zfar + znear - (2. * zbuffer - 1.) * (zfar - znear))
-		# depth = (2. * znear * zfar) / depth
-		depth = zfar - zfar * znear / (zfar - (zfar - znear) * zbuffer)
-
+		depth = (zfar + znear - (2. * zbuffer - 1.) * (zfar - znear))
+		depth = (2. * znear * zfar) / depth
 		if config['noise']:
 			depth += self._random.normal(0, 0.003, depth_image_size)
-		# depth = depth[:, width_clip:-width_clip]
 
 		# Get segmentation image.
 		segm = np.uint8(segm).reshape(depth_image_size)
-		# segm = segm[:, width_clip:-width_clip]
-
-
-		cv2.imshow('test', color)
-		cv2.waitKey(1)
 
 		return color, depth, segm
-
-
-
-
-
-	def init_sim(self):
-
-		p.loadURDF("plane.urdf")
-
-		### create plate ###
-		utils.create_obj(p.GEOM_BOX,
-						mass=-1,
-						halfExtents=[0.4, 0.3, 0.005],
-						rgbaColor=[1, 0.90, 0.72, 1],
-						basePosition=[0.5, 0, 0.005],
-						baseOrientation=[0, 0, 0, 1]
-						)
-
-
-
-	# def _get_obs(self):
-	# 	# Get RGB-D camera image observations.
-	# 	obs = {'color': (), 'depth': ()}
-	# 	color, depth, _, rgb_d = self.render_camera(self.agent_cams[0])
-	# 	obs['color'] += (color,)
-	# 	obs['depth'] += (depth,)
-	#
-	# 	return obs, depth
-
-
-	def _get_obs(self):
-		# Get RGB-D camera image observations.
-		obs = {'color': (), 'depth': ()}
-		color, depth, _ = self.render_camera(self.agent_cams[0])
-		obs['color'] += (color,)
-		obs['depth'] += (depth,)
-
-		return obs, depth
-
 
 	@property
 	def info(self):
@@ -275,53 +325,22 @@ class Environment(Env):
 				info[obj_id] = (pos, rot, dim)
 		return info
 
+	def set_task(self, task):
+		task.set_assets_root(self.assets_root)
+		self.task = task
+
+	#---------------------------------------------------------------------------
+	# Robot Movement Functions
+	#---------------------------------------------------------------------------
 
 
-	def reset(self):
-
-		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
-
-		self.task.reset()
-
-		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-
-		# obs, _, _, _ = self.step()
-
-		for _ in range(100):
-			p.stepSimulation()
-
-		obs, _ = self._get_obs()
+	def _get_obs(self):
+		# Get RGB-D camera image observations.
+		obs = {'color': (), 'depth': ()}
+		for config in self.agent_cams:
+			color, depth, _ = self.render_camera(config)
+			obs['color'] += (color,)
+			obs['depth'] += (depth,)
 
 		return obs
 
-
-	def step(self, action=None):
-		""" Execute one time step within the environment."""
-
-
-		if action is not None:
-			self.task.apply_action(action)
-
-
-		while not self.is_static(self.task.objects):
-			p.stepSimulation()
-
-		obs, depth = self._get_obs()
-
-
-		reward = self.task.reward(depth) if action is not None else (0, {})
-		done = self.task.done()
-
-		info = {}
-
-		if done:
-			info = {"episode": {"l": self.numSteps, "r": reward}}
-
-
-
-		if self.numSteps == 0:
-			self.startTime = time.time()
-
-		self.numSteps += 1
-
-		return obs, reward, done, info

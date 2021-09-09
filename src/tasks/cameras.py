@@ -24,10 +24,10 @@ class RealSenseD415:
 
 	# Mimic RealSense D415 RGB-D camera parameters.
 	image_size = (640, 480)
-	intrinsics = (450., 0, 320., 0, 450., 240., 0, 0, 1)
+	intrinsics = (450., 0, 240., 0, 450., 320., 0, 0, 1)
 
 	# Set default camera poses.
-	front_position = (1.05, 0, 0.75)
+	front_position = (1, 0, 0.75)
 	front_rotation = (np.pi / 4, np.pi, -np.pi / 2)
 	front_rotation = p.getQuaternionFromEuler(front_rotation)
 	left_position = (0, 0.5, 0.75)
@@ -67,7 +67,8 @@ class Oracle:
 
 	# Near-orthographic projection.
 	image_size = (640, 480)
-	intrinsics = (80e4, 0, 320., 0, 80e4, 240., 0, 0, 1)
+	# intrinsics = (80e4, 0, 320., 0, 80e4, 240., 0, 0, 1)
+	intrinsics = (80e4, 0, 240., 0, 80e4, 320., 0, 0, 1)
 	position = (0.5, 0, 1000.)
 	rotation = p.getQuaternionFromEuler((0, np.pi, -np.pi / 2))
 
@@ -79,35 +80,4 @@ class Oracle:
 			'rotation': rotation,
 			'zrange': (999.7, 1001.),
 			'noise': False
-	}]
-
-
-class DaBai:
-	"""Top-down noiseless image used only by the oracle demonstrator."""
-
-	# Near-orthographic projection.
-	# image_size = (160, 160)
-	image_size = (320, 224)         # (row, column)
-	# image_size = (320, 320)         # (row, column)
-	# image_size = (80, 80)         # (row, column)
-
-	position = (0.5, 0, 2)
-	# position = (0.5, 0, 1.125)
-
-	focus_len = image_size[0] * position[2] / 0.8
-
-	intrinsics = (focus_len, 0, 320., 0, 400., 240., 0, 0, 1)
-
-	# intrinsics = (450., 0, 320., 0, 450., 240., 0, 0, 1)
-
-	rotation = p.getQuaternionFromEuler((0, -np.pi, np.pi/2))
-
-	# Camera config.
-	CONFIG = [{
-		'image_size': image_size,
-		'intrinsics': intrinsics,
-		'position': position,
-		'rotation': rotation,
-		'zrange': (0.01, position[2]),
-		'noise': False
 	}]

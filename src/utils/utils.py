@@ -15,33 +15,6 @@ workspace_height = 80
 plate_offset = 10
 
 
-rootdir = os.path.dirname(sys.modules['__main__'].__file__)
-rootdir += "/assets"
-
-obj_cube = rootdir + "/cube_4.obj"
-obj_cuboid1 = rootdir + "/cuboid_4_4_8.obj"
-obj_cuboid2 = rootdir + "/cuboid_4_16.obj"
-obj_cuboid3 = rootdir + "/cuboid_8_8_4.obj"
-obj_curve = rootdir + "/curve.obj"
-obj_cylinder = rootdir + "/cylinder_4_4.obj"
-obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
-
-
-OBJECTS = {
-	'cube': obj_cube,
-	'cuboid1': obj_cuboid1,
-	'cuboid2': obj_cuboid2,
-	'cuboid3': obj_cuboid3,
-	'curve': obj_curve,
-	'cylinder': obj_cylinder,
-	'triangular_prism': obj_triangular_prism
-}
-
-
-
-
-
-
 
 
 def apply_action(self, raw_action):
@@ -364,43 +337,43 @@ def reconstruct_heightmaps(color, depth, configs, bounds, pixel_size):
 	return heightmaps, colormaps
 
 
-# def pix_to_xyz(pixel, height, bounds, pixel_size, skip_height=False):
-# 	"""Convert from pixel location on heightmap to 3D position."""
-# 	u, v = pixel
-# 	x = bounds[0, 1] - v * pixel_size
-# 	y = bounds[1, 1] - u * pixel_size
-# 	if not skip_height:
-# 		z = bounds[2, 0] + height[u, v]
-# 	else:
-# 		z = 0.0
-# 	return (x, y, z)
-#
-#
-# def xyz_to_pix(position, bounds, pixel_size):
-# 	"""Convert from 3D position to pixel location on heightmap."""
-# 	u = int(np.round((bounds[1, 1] - position[1]) / pixel_size))
-# 	v = int(np.round((bounds[0, 1] - position[0]) / pixel_size))
-# 	return (u, v)
-
-
-
-def pix_to_xyz(pixel, height, bounds, pixel_size, skip_height=True):
+def pix_to_xyz(pixel, height, bounds, pixel_size, skip_height=False):
 	"""Convert from pixel location on heightmap to 3D position."""
 	u, v = pixel
-	y = bounds[1, 1] - v * pixel_size
-	x = bounds[0, 1] - u * pixel_size
+	x = bounds[0, 0] + v * pixel_size
+	y = bounds[1, 0] + u * pixel_size
 	if not skip_height:
 		z = bounds[2, 0] + height[u, v]
 	else:
-		z = 0.04
+		z = 0.0
 	return (x, y, z)
 
 
 def xyz_to_pix(position, bounds, pixel_size):
 	"""Convert from 3D position to pixel location on heightmap."""
-	v = int(np.round((bounds[1, 1] - position[1]) / pixel_size))
-	u = int(np.round((bounds[0, 1] - position[0]) / pixel_size))
+	u = int(np.round((position[1] - bounds[1, 0]) / pixel_size))
+	v = int(np.round((position[0] - bounds[0, 0]) / pixel_size))
 	return (u, v)
+#
+#
+#
+# def pix_to_xyz(pixel, height, bounds, pixel_size, skip_height=True):
+# 	"""Convert from pixel location on heightmap to 3D position."""
+# 	u, v = pixel
+# 	y = bounds[1, 1] - v * pixel_size
+# 	x = bounds[0, 1] - u * pixel_size
+# 	if not skip_height:
+# 		z = bounds[2, 0] + height[u, v]
+# 	else:
+# 		z = 0.04
+# 	return (x, y, z)
+#
+#
+# def xyz_to_pix(position, bounds, pixel_size):
+# 	"""Convert from 3D position to pixel location on heightmap."""
+# 	v = int(np.round((bounds[1, 1] - position[1]) / pixel_size))
+# 	u = int(np.round((bounds[0, 1] - position[0]) / pixel_size))
+# 	return (u, v)
 
 
 
