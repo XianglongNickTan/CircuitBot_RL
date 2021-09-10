@@ -33,6 +33,9 @@ class PathPlanner:
         self.departure = departure
         self.destination = destination
 
+    def add_obstacle(self, obstacle):
+        self.obstacles.append(obstacle)
+
     def add_obstacles(self, obstacles):
         self.obstacles += obstacles
 
@@ -98,7 +101,7 @@ class PathPlanner:
         pos_list = []
         for offset in offsets:
             pos = location.get_coordination(self.get_map())
-            new_pos = Coordination(pos.x + offset[0], pos.y + offset[1])
+            new_pos = self.get_map().get_coordination(pos.x + offset[0], pos.y + offset[1])
             if new_pos.x < 0 or new_pos.x >= self.get_map().width or new_pos.y < 0 or new_pos.y >= self.get_map().height:
                 continue
             new_pos = self.get_map().get_coordination(new_pos.x, new_pos.y)
@@ -107,8 +110,9 @@ class PathPlanner:
                 continue
 
             if len(self.obstacles) != 0:
-                if (new_pos.x, new_pos.y) in self.obstacles:
-                    return []
+                for obstacle in self.obstacles:
+                    if new_pos.x == obstacle.x and new_pos.y == obstacle.y and abs(new_pos.z - obstacle.z) < self.analyzer.min_slope:
+                        return []
             pos_list.append(new_pos)
         return pos_list
 

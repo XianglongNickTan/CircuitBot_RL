@@ -29,11 +29,17 @@ class PathAnalyzer:
 		self.path_planners[pair_no].set_pathplan(self.map.get_coordination(departure[0], departure[1]),
 		                                         self.map.get_coordination(destination[0], destination[1]))
 
-	def add_obstacles(self, new_obstacles):
-		self.path_planners[0].add_obstacles(new_obstacles)
+	def add_obstacle(self, new_obstacle):
+		self.path_planners[0].add_obstacle(self.map.get_coordination(new_obstacle[0], new_obstacle[1]))
 
-	def set_obstacles(self, new_obstacles):
-		self.path_planners[0].set_obstacles(new_obstacles)
+	def add_obstacles(self, new_obstacles):
+		for new_obstacle in new_obstacles:
+			pts = self.map.get_coordination(new_obstacle[0], new_obstacle[1])
+			pts.z = 0
+			self.path_planners[0].add_obstacle(pts)
+	
+	def add_obstacle_coordinations(self, new_obstacles):
+		self.path_planners[0].add_obstacles(new_obstacles)
 
 	def clear_obstacles(self):
 		self.path_planners[0].clear_obstacles()
@@ -47,7 +53,9 @@ class PathAnalyzer:
 
 		if result_1.success:
 			print(self.path_planners[0].obstacles)
-			self.path_planners[1].add_obstacles(self.path_planners[0].obstacles + result_1.path)
+			self.path_planners[1].add_obstacles(self.path_planners[0].obstacles)
+			for new_obstacle in result_1.path:
+				self.path_planners[1].add_obstacle(self.map.get_coordination(new_obstacle[0], new_obstacle[1]))
 			result_2 = self.path_planners[1].search()
 
 		self.result[0] = result_1
@@ -56,6 +64,30 @@ class PathAnalyzer:
 		print(time.time() - last)
 		self.draw_map_3D()
 		self.reset()
+
+	def search_1(self):
+
+		result_1 = self.path_planners[0].search()
+		result_2 = PathResult()
+
+		if result_1.success:
+			print(self.path_planners[0].obstacles)
+			self.path_planners[1].add_obstacles(self.path_planners[0].obstacles)
+			for new_obstacle in result_1.path:
+				self.path_planners[1].add_obstacle(self.map.get_coordination(new_obstacle[0], new_obstacle[1]))
+
+		self.result[0] = result_1
+		self.result[1] = result_2
+
+	def search_2(self):
+		result_2 = PathResult()
+
+		if self.result[0].success:
+			result_2 = self.path_planners[1].search()
+
+		self.result[1] = result_2
+		self.draw_map_3D()
+
 
 	def reset(self):
 		self.clear_obstacles()
@@ -107,8 +139,8 @@ class PathAnalyzer:
 		
 		path3 = []
 		for i in self.path_planners[0].obstacles:
-			if i[1] < 80 and i[0] < 60:
-				path3.append(i)
+			if i.y < 80 and i.x < 60:
+				path3.append((i.x, i.y))
 		pathT3 = np.transpose(path3)
 		Xp3 = pathT3[0]
 		Yp3 = pathT3[1]
