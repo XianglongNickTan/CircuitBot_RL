@@ -295,11 +295,10 @@ class Task:
 
 		self.analyzer.set_map(self.init_weight_map())
 
-		self.analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
+		self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
 		                           [power_black_ele[0], power_black_ele[1]])
 
-		self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
-		                           [power_white_ele[0], power_white_ele[1]])
+		self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],		                           [power_white_ele[0], power_white_ele[1]])
 
 		# self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
 		#                            [power_black_ele[0], power_black_ele[1]])
@@ -340,8 +339,11 @@ class Task:
 		return [center_x, center_y], ob_list
 
 
-	def add_forbidden_area_to_analyzer(self, area_list):
-		self.analyzer.add_obstacles(area_list)
+	def add_nono_area_to_analyzer(self, area_list):
+		new_list = []
+		for i in area_list:
+			new_list.append((i[0]//2 , (abs(80 - i[1]//2))))
+		self.analyzer.add_obstacles(new_list)
 
 
 

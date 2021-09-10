@@ -18,6 +18,8 @@ class PathPlanner:
         self.close_list = None
         self.node_searched = 0
 
+        self.count = 0
+
         self.path = []
         self.reached = False
         
@@ -37,7 +39,7 @@ class PathPlanner:
     def set_obstacles(self, obstacles):
         self.obstacles = obstacles
 
-    def clear_obstacles(self, obstacles):
+    def clear_obstacles(self):
         self.obstacles.clear()
 
     def search(self):
@@ -56,6 +58,7 @@ class PathPlanner:
         while not self.open_list.is_empty():
             node_to_open = self.open_list.top()
             if node_to_open.get_pos() == (self.destination.x, self.destination.y):
+                print(self.count)
                 result = node_to_open
                 path = []
                 path.append(result.get_pos())
@@ -90,6 +93,7 @@ class PathPlanner:
         return pred
 
     def get_new_position(self, location):
+        # offsets = [(-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
         offsets = [(-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
         pos_list = []
         for offset in offsets:
@@ -104,7 +108,7 @@ class PathPlanner:
 
             if len(self.obstacles) != 0:
                 if (new_pos.x, new_pos.y) in self.obstacles:
-                    continue
+                    return []
             pos_list.append(new_pos)
         return pos_list
 
