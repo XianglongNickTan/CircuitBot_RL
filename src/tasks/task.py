@@ -100,7 +100,7 @@ class Task:
 
 		self.objects = []
 		self.electrodeID = []
-		self.nono_area = []
+		self.forbidden_area = []
 
 		self.pick_threshold = 0.03  ## m
 		self.grip_z_offset = 0.07
@@ -121,10 +121,10 @@ class Task:
 
 
 
-	def _get_reward(self, weight_map, nono_area=None):
+	def _get_reward(self, weight_map, forbidden_area=None):
 		self.analyzer.set_map(weight_map)
-		if nono_area is not None:
-			self.add_nono_area_to_analyzer(nono_area)
+		if forbidden_area is not None:
+			self.add_forbidden_area_to_analyzer(forbidden_area)
 
 		self.analyzer.search()
 
@@ -301,8 +301,14 @@ class Task:
 		self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
 		                           [power_white_ele[0], power_white_ele[1]])
 
+		# self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
+		#                            [power_black_ele[0], power_black_ele[1]])
+		#
+		# self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],
+		#                            [power_white_ele[0], power_white_ele[1]])
 
-	def add_nono_area(self, analyzer, top_left, bottom_right):
+
+	def get_forbidden_area(self, top_left, bottom_right):
 		""" 1:1 pixel location"""
 
 		length = bottom_right[0] - top_left[0]
@@ -317,7 +323,7 @@ class Task:
 		           rgbaColor=[1, 0, 0, 1],
 		           basePosition=[center_x, center_y, 0.01],
 		           baseOrientation=[0, 0, 0, 1],
-                   object_list=self.nono_area
+                   object_list=self.forbidden_area
 		           )
 
 		top_left_pix = utils.xyz_to_pix([top_left[0], top_left[1], 0], self.bounds, self.pix_size)
@@ -334,7 +340,7 @@ class Task:
 		return [center_x, center_y], ob_list
 
 
-	def add_nono_area_to_analyzer(self, area_list):
+	def add_forbidden_area_to_analyzer(self, area_list):
 		self.analyzer.add_obstacles(area_list)
 
 

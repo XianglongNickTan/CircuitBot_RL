@@ -49,7 +49,7 @@ class ConstructBridge(Task):
 		                            object_list=self.objects
 									)
 
-		self.area_center, self.area_list = self.add_nono_area(analyzer=self.analyzer,
+		self.area_center, self.area_list = self.get_forbidden_area(
 		                                top_left=[0.9 - base_x, -0.2 + random.random() / 10],
 	                                    bottom_right=[0.9 - base_x + 0.1, 0.2 + random.random() / 10])
 
@@ -76,9 +76,9 @@ class ConstructBridge(Task):
 			p.removeBody(object)
 		self.electrodeID = []
 
-		for object in self.nono_area:
+		for object in self.forbidden_area:
 			p.removeBody(object)
-		self.nono_area = []
+		self.forbidden_area = []
 	#
 
 	def reward(self):

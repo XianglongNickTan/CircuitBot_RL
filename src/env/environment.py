@@ -137,7 +137,7 @@ class Environment(gym.Env):
 		if disp:
 			target = p.getDebugVisualizerCamera()[11]
 			p.resetDebugVisualizerCamera(
-					cameraDistance=1.1,
+					cameraDistance=1.3,
 					cameraYaw=90,
 					cameraPitch=-25,
 					cameraTargetPosition=target)
