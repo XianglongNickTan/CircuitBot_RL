@@ -46,7 +46,8 @@ class PathAnalyzer:
 		result_2 = PathResult()
 
 		if result_1.success:
-			self.path_planners[1].add_obstacles(self.path_planners[0].obstacles + self.path_planners[0].path)
+			print(self.path_planners[0].obstacles)
+			self.path_planners[1].add_obstacles(self.path_planners[0].obstacles + result_1.path)
 			result_2 = self.path_planners[1].search()
 
 		self.result[0] = result_1
@@ -58,7 +59,7 @@ class PathAnalyzer:
 
 	def reset(self):
 		self.clear_obstacles()
-
+            
 	def get_result(self, no):
 		return self.result[no].success, self.result[no].path, self.result[no].cost
 
@@ -87,19 +88,32 @@ class PathAnalyzer:
 
 		fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), figsize=(12, 10))
 		ax.plot_wireframe(X, Y, Z, cmap=plt.cm.gist_earth)
-
+		
 		ax.set_zlim(0, 40)
-		pathT = np.transpose(self.result[0].path)  # [[1,2],[1,2],[1,2]...]
-		Xp = pathT[0]  # [[1,1,1,1,1], [2,2,2,2]...]
-		Yp = pathT[1]
-		Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[0].path]
-		ax.scatter(Xp, Yp, Zp, c='g', s=200)
 
-		pathT2 = np.transpose(self.result[1].path)
-		Xp2 = pathT2[0]
-		Yp2 = pathT2[1]
-		Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[1].path]
-		ax.scatter(Xp2, Yp2, Zp2, c='b', s=200)
+		if self.result[0].success:
+			pathT = np.transpose(self.result[0].path)  # [[1,2],[1,2],[1,2]...]
+			Xp = pathT[0]  # [[1,1,1,1,1], [2,2,2,2]...]
+			Yp = pathT[1]
+			Zp = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[0].path]
+			ax.scatter(Xp, Yp, Zp, c='g', s=200)
+
+		if self.result[1].success:
+			pathT2 = np.transpose(self.result[1].path)
+			Xp2 = pathT2[0]
+			Yp2 = pathT2[1]
+			Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[1].path]
+			ax.scatter(Xp2, Yp2, Zp2, c='b', s=200)
+		
+		path3 = []
+		for i in self.path_planners[1].obstacles:
+			if i[1] < 80 and i[0] < 60:
+				path3.append(i)
+		pathT3 = np.transpose(path3)
+		Xp3 = pathT3[0]
+		Yp3 = pathT3[1]
+		Zp3 = [self.map.dem_map[pos[1], pos[0]] for pos in path3]
+		ax.scatter(Xp3, Yp3, Zp3, c='b', s=200)
 
 		plt.show()
 
