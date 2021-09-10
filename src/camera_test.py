@@ -32,6 +32,7 @@ obj_cuboid3 = rootdir + "/cuboid_8_8_4.obj"
 obj_curve = rootdir + "/curve.obj"
 obj_cylinder = rootdir + "/cylinder_4_4.obj"
 obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
+obj_bridge = rootdir + "/bridge_1.obj"
 
 
 OBJECTS = {
@@ -41,7 +42,8 @@ OBJECTS = {
 	'cuboid3': obj_cuboid3,
 	'curve': obj_curve,
 	'cylinder': obj_cylinder,
-	'triangular_prism': obj_triangular_prism
+	'triangular_prism': obj_triangular_prism,
+	'bridge': obj_bridge
 }
 
 in_shape = (120, 160, 6)
@@ -104,11 +106,10 @@ utils.create_obj(p.GEOM_BOX,
 
 utils.create_obj(p.GEOM_MESH,
                  mass=0.01,
-                 use_file=OBJECTS['cuboid2'],
-                 rgbaColor=utils.COLORS['red'],
-                 basePosition=[0.3 + 4 * random.random() / 10,
-                               0.10 * (2 * random.random() - 1), 0.02],
-                 baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi / 2]),
+                 use_file=obj_bridge,
+                 basePosition=[0.5,
+                               0.10 * (2 * random.random() - 1), 0.3],
+                 baseOrientation=p.getQuaternionFromEuler([0, 0, 0])
                  )
 
 
@@ -223,13 +224,14 @@ for _ in range(100):
 
 
 for _ in range(10000):
-	obs = _get_obs()
-	img = get_image(obs)
+	# obs = _get_obs()
+	# img = get_image(obs)
 
-	# color, depth, msk = render_camera(agent_cams[0])
+	color, depth, msk = render_camera(agent_cams[0])
 	# color, depth, msk = get_true_image()
 
-	cv2.imshow('test', img[:,:,3]*30)
+	# cv2.imshow('test', img[:,:,3]*30)
+	cv2.imshow('test', color)
 	cv2.waitKey(1)
 	p.stepSimulation()
 	time.sleep(1/240)

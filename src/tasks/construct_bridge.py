@@ -34,7 +34,7 @@ class ConstructBridge(Task):
 
 	def add_obstacles(self):
 
-		obstacle_type = self.obj_type['triangular_prism']
+		obstacle_type = self.obj_type['bridge']
 
 
 		base_x = 0.5 + 2 * (2 * random.random() - 1) / 10
@@ -51,7 +51,7 @@ class ConstructBridge(Task):
 
 		self.area_center, self.area_list = self.get_forbidden_area(
 		                                top_left=[0.9 - base_x, -0.2 + random.random() / 10],
-	                                    bottom_right=[0.9 - base_x + 0.02, 0.2 + random.random() / 10])
+	                                    bottom_right=[0.9 - base_x + 0.07, 0.2 + random.random() / 10])
 
 
 	def apply_action(self, action=None):

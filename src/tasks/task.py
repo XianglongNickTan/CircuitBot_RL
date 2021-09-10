@@ -43,6 +43,7 @@ obj_cuboid3 = rootdir + "/cuboid_8_8_4.obj"
 obj_curve = rootdir + "/curve.obj"
 obj_cylinder = rootdir + "/cylinder_4_4.obj"
 obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
+obj_bridge = rootdir + "/bridge_1.obj"
 
 
 OBJECTS = {
@@ -52,13 +53,14 @@ OBJECTS = {
 	'cuboid3': obj_cuboid3,
 	'curve': obj_curve,
 	'cylinder': obj_cylinder,
-	'triangular_prism': obj_triangular_prism
+	'triangular_prism': obj_triangular_prism,
+	'bridge': obj_bridge
 }
 
 
 COLORS = {
 	'blue': [078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0, 1],
-	'red': [255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
+	# 'red': [255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
 	'green': [089.0 / 255.0, 169.0 / 255.0, 079.0 / 255.0, 1],
 	'orange': [242.0 / 255.0, 142.0 / 255.0, 043.0 / 255.0, 1],
 	'yellow': [237.0 / 255.0, 201.0 / 255.0, 072.0 / 255.0, 1],
@@ -157,7 +159,7 @@ class Task:
 
 
 	def set_color(self):
-		color_num = random.randint(0, 9)
+		color_num = random.randint(0, 8)
 		return self.color_list[color_num]
 
 
@@ -349,7 +351,7 @@ class Task:
 				ob_list.append(point)
 
 
-		return [center_x, center_y], ob_list
+		return [center_x-0.01, center_y-0.01], ob_list
 
 
 	def add_forbidden_area_to_analyzer(self, area_list):
