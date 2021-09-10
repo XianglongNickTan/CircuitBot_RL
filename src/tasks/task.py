@@ -309,17 +309,17 @@ class Task:
 
 		self.analyzer.set_map(self.init_weight_map())
 
-		self.analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
-		                           [power_black_ele[0], power_black_ele[1]])
-
-		self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
-		                           [power_white_ele[0], power_white_ele[1]])
-
-		# self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
+		# self.analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
 		#                            [power_black_ele[0], power_black_ele[1]])
-		#
-		# self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],
+
+		# self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
 		#                            [power_white_ele[0], power_white_ele[1]])
+
+		self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
+		                           [power_black_ele[0], power_black_ele[1]])
+		
+		self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],
+		                           [power_white_ele[0], power_white_ele[1]])
 
 
 	def get_forbidden_area(self, top_left, bottom_right):
