@@ -44,7 +44,8 @@ class AllInOne(Task):
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
 									use_file=self.obj_type['cuboid2'],
-									rgbaColor=self.set_color(),
+									rgbaColor=[1,1,1,1],
+									# rgbaColor=self.set_color(),
 									basePosition=[base_x + 0.25*pos_index,
 									              0.10 * (2 * random.random() - 1), 0.03],
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
@@ -61,7 +62,8 @@ class AllInOne(Task):
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
 									use_file=self.obj_type['bridge'],
-									rgbaColor=self.set_color(),
+									# rgbaColor=self.set_color(),
+									rgbaColor=[1,1,1,1],
 									basePosition=[base_x - 0.25 *pos_index,
 									              0.10 * (2 * random.random() - 1), 0.03],
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
@@ -138,12 +140,11 @@ class AllInOne(Task):
 			place_z = 0.04 + self.grip_z_offset
 
 			if self.grap_num == 0:
-				place_pos = (base[0], 0.22, place_z)
+				place_pos = (0.7, -0.22, place_z)
 
 
 			else:
 				place_pos = (self.area_center[0], self.area_center[1], place_z)
-
 
 			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 
