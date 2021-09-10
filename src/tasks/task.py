@@ -209,7 +209,8 @@ class Task:
 		robot_y = 0.055
 
 
-		robot_ele = utils.xyz_to_pix([robot_x, robot_y, 0], self.bounds, 0.01)
+		robot_ele = np.asarray(utils.xyz_to_pix([robot_x + self.bounds[0, 0], robot_y, 0], self.bounds, 0.01))
+		robot_ele[1] = 80 - robot_ele[1]
 
 
 		### create robot electrode ###
@@ -289,16 +290,28 @@ class Task:
 						 object_list=self.electrodeID
 						 )
 
-		power_black_ele = utils.xyz_to_pix([self.bounds[0, 1] - black_x_offset, black_y_offset, 0], self.bounds, 0.01)
-		power_white_ele = utils.xyz_to_pix([self.bounds[0, 1] - white_x_offset, white_y_offset, 0], self.bounds, 0.01)
+		# power_black_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - black_x_offset, black_y_offset, 0],
+		#                                               self.bounds, 0.01))
+		#
+		# power_white_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - white_x_offset, white_y_offset, 0],
+		#                                               self.bounds, 0.01))
 
+		power_black_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - black_x_offset, black_y_offset, 0],
+		                                              self.bounds, 0.01))
+
+		power_white_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - white_x_offset, white_y_offset, 0],
+		                                              self.bounds, 0.01))
+
+		power_black_ele[1] = 80 - power_black_ele[1]
+		power_white_ele[1] = 80 - power_white_ele[1]
 
 		self.analyzer.set_map(self.init_weight_map())
 
-		self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
+		self.analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
 		                           [power_black_ele[0], power_black_ele[1]])
 
-		self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],		                           [power_white_ele[0], power_white_ele[1]])
+		self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
+		                           [power_white_ele[0], power_white_ele[1]])
 
 		# self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
 		#                            [power_black_ele[0], power_black_ele[1]])
@@ -325,13 +338,13 @@ class Task:
                    object_list=self.forbidden_area
 		           )
 
-		top_left_pix = utils.xyz_to_pix([top_left[0], top_left[1], 0], self.bounds, self.pix_size)
+		top_left_pix = utils.xyz_to_pix([top_left[0], top_left[1], 0], self.bounds, 0.01)
 
 		ob_list = []
 
 		for i in range(int(length*100)):
 			for j in range(int(width*100)):
-				point = (top_left_pix[0] + j, top_left_pix[1] + i)
+				point = (top_left_pix[0] + j, 80 - (top_left_pix[1] + i))
 				# point = (top_left_pix[1] + j, top_left_pix[0] + i)
 				ob_list.append(point)
 
@@ -339,11 +352,8 @@ class Task:
 		return [center_x, center_y], ob_list
 
 
-	def add_nono_area_to_analyzer(self, area_list):
-		new_list = []
-		for i in area_list:
-			new_list.append((i[0]//2 , (abs(80 - i[1]//2))))
-		self.analyzer.add_obstacles(new_list)
+	def add_forbidden_area_to_analyzer(self, area_list):
+		self.analyzer.add_obstacles(area_list)
 
 
 

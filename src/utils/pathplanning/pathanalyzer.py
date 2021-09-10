@@ -106,14 +106,14 @@ class PathAnalyzer:
 			ax.scatter(Xp2, Yp2, Zp2, c='b', s=200)
 		
 		path3 = []
-		for i in self.path_planners[1].obstacles:
+		for i in self.path_planners[0].obstacles:
 			if i[1] < 80 and i[0] < 60:
 				path3.append(i)
 		pathT3 = np.transpose(path3)
 		Xp3 = pathT3[0]
 		Yp3 = pathT3[1]
 		Zp3 = [self.map.dem_map[pos[1], pos[0]] for pos in path3]
-		ax.scatter(Xp3, Yp3, Zp3, c='b', s=200)
+		ax.scatter(Xp3, Yp3, Zp3, c='r', s=5)
 
 		plt.show()
 

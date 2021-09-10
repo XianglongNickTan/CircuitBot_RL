@@ -51,7 +51,7 @@ class ConstructBridge(Task):
 
 		self.area_center, self.area_list = self.get_forbidden_area(
 		                                top_left=[0.9 - base_x, -0.2 + random.random() / 10],
-	                                    bottom_right=[0.9 - base_x + 0.1, 0.2 + random.random() / 10])
+	                                    bottom_right=[0.9 - base_x + 0.02, 0.2 + random.random() / 10])
 
 
 	def apply_action(self, action=None):
