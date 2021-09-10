@@ -103,6 +103,7 @@ class Task:
 		self.objects = []
 		self.electrodeID = []
 		self.forbidden_area = []
+		self.ink_path = []
 
 		self.pick_threshold = 0.03  ## m
 		self.grip_z_offset = 0.07
@@ -121,17 +122,22 @@ class Task:
 
 		self.obj_color = None
 
+		self.path1 = []
+		self.path2 = []
+
+		self.draw_circuit = False
+		self.grap_num = 0
 
 
 	def _get_reward(self, weight_map, forbidden_area=None):
 		self.analyzer.set_map(weight_map)
 		if forbidden_area is not None:
-			self.add_forbidden_area_to_analyzer(forbidden_area)
+			self.analyzer.add_obstacles(forbidden_area)
 
 		self.analyzer.search()
 
-		success_1, path_1, cost_1 = self.analyzer.get_result(0)
-		success_2, path_2, cost_2 = self.analyzer.get_result(1)
+		success_1, self.path1, cost_1 = self.analyzer.get_result(0)
+		success_2, self.path2, cost_2 = self.analyzer.get_result(1)
 
 		min_cost_1 = self.euler_dist(0)
 		min_cost_2 = self.euler_dist(1)
@@ -139,6 +145,11 @@ class Task:
 		reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
 		reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
 		reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
+
+		# if self.draw_circuit:
+			#
+			# self.show_path(weight_map, path_1, 0)
+			# self.show_path(weight_map, path_2, 1)
 
 		# self.analyzer.draw_map_3D()
 		# self.analyzer.draw_map_3D_only()
@@ -205,14 +216,14 @@ class Task:
 		return weight_map
 
 
-	def set_add_electrode(self, black_x_offset=0.125, black_y_offset=0.055, white_x_offset=0.125, white_y_offset=-0.055):
+	def set_add_electrode(self, black_x_offset=0.12, black_y_offset=0.05, white_x_offset=0.12, white_y_offset=-0.05):
 
-		robot_x = 0.125
-		robot_y = 0.055
+		robot_x = 0.12
+		robot_y = 0.05
 
 
 		robot_ele = np.asarray(utils.xyz_to_pix([robot_x + self.bounds[0, 0], robot_y, 0], self.bounds, 0.01))
-		robot_ele[1] = 80 - robot_ele[1]
+		robot_ele[1] = 79 - robot_ele[1]
 
 
 		### create robot electrode ###
@@ -292,37 +303,44 @@ class Task:
 						 object_list=self.electrodeID
 						 )
 
-		# power_black_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - black_x_offset, black_y_offset, 0],
-		#                                               self.bounds, 0.01))
-		#
-		# power_white_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - white_x_offset, white_y_offset, 0],
-		#                                               self.bounds, 0.01))
-
 		power_black_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - black_x_offset, black_y_offset, 0],
 		                                              self.bounds, 0.01))
 
 		power_white_ele = np.asarray(utils.xyz_to_pix([self.bounds[0, 1] - white_x_offset, white_y_offset, 0],
 		                                              self.bounds, 0.01))
 
-		power_black_ele[1] = 80 - power_black_ele[1]
-		power_white_ele[1] = 80 - power_white_ele[1]
+		power_black_ele[1] = 79 - power_black_ele[1]
+		power_white_ele[1] = 79 - power_white_ele[1]
 
 		self.analyzer.set_map(self.init_weight_map())
 
-		# self.analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
-		#                            [power_black_ele[0], power_black_ele[1]])
-
-		# self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
-		#                            [power_white_ele[0], power_white_ele[1]])
-
-		self.analyzer.set_pathplan(0, [60 - robot_ele[0], robot_ele[1]],
+		self.analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
 		                           [power_black_ele[0], power_black_ele[1]])
-		
-		self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],
+
+		self.analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
 		                           [power_white_ele[0], power_white_ele[1]])
 
+		# self.analyzer.set_pathplan(0, [59 - robot_ele[0], robot_ele[1]],
+		#                            [power_black_ele[0], power_black_ele[1]])
+		#
+		# self.analyzer.set_pathplan(1, [robot_ele[0], robot_ele[1]],
+		#                            [power_white_ele[0], power_white_ele[1]])
 
-	def get_forbidden_area(self, top_left, bottom_right):
+		electrode_list = []
+		for i in range(78 - robot_ele[1]):
+			electrode_list.append([robot_ele[0], robot_ele[1] + i + 2])
+			electrode_list.append([60 - robot_ele[0], robot_ele[1] + i + 2])
+
+		for i in range(power_black_ele[1]):
+			electrode_list.append([power_black_ele[0], i])
+
+		for i in range(power_white_ele[1]):
+			electrode_list.append([power_white_ele[0], i])
+
+		self.analyzer.add_obstacles(electrode_list)
+
+
+	def add_forbidden_area(self, top_left, bottom_right):
 		""" 1:1 pixel location"""
 
 		length = bottom_right[0] - top_left[0]
@@ -350,12 +368,102 @@ class Task:
 				# point = (top_left_pix[1] + j, top_left_pix[0] + i)
 				ob_list.append(point)
 
+		# self.analyzer.add_obstacles(ob_list)
 
-		return [center_x-0.01, center_y-0.01], ob_list
+		return [center_x-0.01, center_y-0.01]
 
 
-	def add_forbidden_area_to_analyzer(self, area_list):
-		self.analyzer.add_obstacles(area_list)
+
+	def show_path(self, weight_map, path, no):
+		for point in path:
+			center_u = point[0]
+			center_v = point[1]
+			center_v = 79 - center_v
+
+			center = np.asarray(utils.pix_to_xyz(pixel=[center_u, center_v],
+			                          height=None,
+			                          bounds=self.bounds,
+			                          pixel_size=0.01,
+			                          skip_height=True))
+
+			center[2] = 0.4
+
+			center_z = weight_map[center_v, center_u] / 100
+
+
+			self.arm.move_to(center,
+			                 p.getQuaternionFromEuler([0, -math.pi, 0]))
+
+			if no == 0:
+				color = [0,0,0,1]
+
+			if no == 1:
+				color = [1,1,1,1]
+
+			utils.create_obj(p.GEOM_SPHERE,
+			                 mass=-1,
+			                 radius=0.008,
+			                 rgbaColor=color,
+			                 basePosition=[center[0], center[1], center_z + 0.01],
+			                 baseOrientation=[0, 0, 0, 1],
+			                 object_list=self.ink_path
+			                 )
+
+			# utils.create_obj(p.GEOM_CYLINDER,
+			#            mass=-1,
+			#            radius=0.008,
+	        #            height= 0.00001,
+			#            rgbaColor=color,
+			#            basePosition=[center[0], center[1], center_z + 0.01],
+			#            baseOrientation=[0, 0, 0, 1],
+			#            object_list=self.ink_path
+			#            )
+
+			# utils.create_obj(p.GEOM_BOX,
+			#                  mass=-1,
+			# 				 halfExtents=[0.008, 0.008, 0.0001],
+			#                  rgbaColor=color,
+			#                  basePosition=[center[0], center[1], center_z + 0.01],
+			#                  baseOrientation=[0, 0, 0, 1],
+			#                  object_list=self.ink_path
+			#                  )
+
+
+
+	def remove_objects(self):
+		for object in self.objects:
+			p.removeBody(object)
+		self.objects = []
+
+		for object in self.electrodeID:
+			p.removeBody(object)
+		self.electrodeID = []
+
+		for object in self.forbidden_area:
+			p.removeBody(object)
+		self.forbidden_area = []
+
+		for object in self.ink_path:
+			p.removeBody(object)
+		self.ink_path = []
+
+
+	def reward(self):
+		weight_map = self.get_weight_map()
+		reward = self._get_reward(weight_map, self.forbidden_area)
+
+		return reward, None
+
+
+	def add_obstacles(self):
+		pass
+
+	def reset(self):
+		self.grap_num = 0
+		self.remove_objects()
+		self.set_add_electrode()
+		self.add_obstacles()
+
 
 
 

@@ -76,15 +76,6 @@ def show_3d_weightmap_path(analyzer):
 	analyzer.draw_map_3D()
 
 
-def from_pixel_to_coordinate(x_y, ratio):
-	""" ratio: 1 = 1pixel:1cm  2 = 1pixel:0.5cm """
-
-
-	real_x = workspace_height - (0.5 + x_y[0]) / ratio
-	real_y = workspace_width / 2 - (0.5 + x_y[1]) / ratio
-
-	return [(real_x + plate_offset) / 100, real_y / 100]
-
 
 
 
@@ -102,6 +93,13 @@ def create_obj(obj, mass=None, halfExtents=None, radius=None, height=None, rgbaC
 			visual = p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
 			# shape = p.createCollisionShape(obj, radius=radius, height=height)
 			shape = -1
+
+		elif obj == p.GEOM_SPHERE:
+			# visual = p.createVisualShape(obj, radius=radius, length=height, rgbaColor=rgbaColor)
+			visual = p.createVisualShape(obj, radius=radius, rgbaColor=rgbaColor)
+			# shape = p.createCollisionShape(obj, radius=radius, height=height)
+			shape = -1
+
 
 		else:
 			raise NotImplementedError()
@@ -152,23 +150,7 @@ def add_obstacles(analyzer, top_left, bottom_right):
 			   )
 
 
-def show_path(weight_map, path):
-	for point in path:
-		center_x = point[1]
-		center_y = point[0]
 
-		center_x = workspace_height - center_x - 1
-		center_z = weight_map[center_x, center_y] / 100
-
-		center = from_pixel_to_coordinate([center_x, center_y], 1)
-
-		create_obj(p.GEOM_BOX,
-				   mass=-1,
-				   halfExtents=[0.005, 0.005, 0.0001],
-				   rgbaColor=[0, 0, 0, 1],
-				   basePosition=[center[0], center[1], center_z + 0.01],
-				   baseOrientation=[0, 0, 0, 1]
-				   )
 
 #
 # def add_object():

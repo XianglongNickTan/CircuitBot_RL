@@ -16,7 +16,7 @@ class PathAnalyzer:
 		self.path_planners = [PathPlanner(self), PathPlanner(self)]
 		self.result = [PathResult(), PathResult()]
 		self.min_slope = 0.3
-		self.max_slope = 0.5
+		self.max_slope = 0.7
 
 	def set_map(self, array):
 		self.map.read_fromNdArray(array)
@@ -62,7 +62,7 @@ class PathAnalyzer:
 		self.result[1] = result_2
 
 		print(time.time() - last)
-		self.draw_map_3D()
+		# self.draw_map_3D()
 		self.reset()
 
 	def search_1(self):
