@@ -63,7 +63,7 @@ class AllInOne(Task):
 									mass=0.01,
 									use_file=self.obj_type['bridge'],
 									# rgbaColor=self.set_color(),
-									rgbaColor=[1,1,1,1],
+									rgbaColor=[0,0,0,1],
 									basePosition=[base_x - 0.25 *pos_index,
 									              0.10 * (2 * random.random() - 1), 0.03],
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
