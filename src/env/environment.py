@@ -63,7 +63,8 @@ class Environment(gym.Env):
 		if use_egl and disp:
 			raise ValueError('EGL rendering cannot be used with `disp=True`.')
 
-		self.pix_size = 0.005
+		# self.pix_size = 0.005
+		self.pix_size = 0.0025
 		self.obj_ids = {'fixed': [], 'rigid': [], 'deformable': []}
 		self.agent_cams = cameras.RealSenseD415.CONFIG
 

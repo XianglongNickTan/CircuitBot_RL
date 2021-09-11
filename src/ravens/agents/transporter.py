@@ -31,20 +31,19 @@ from tasks import cameras
 class TransporterAgent:
 	"""Agent that uses Transporter Networks."""
 
-	def __init__(self, name, task, root_dir, n_rotations=36):
+	def __init__(self, name, task, root_dir, n_rotations=4):
 		self.name = name
 		self.task = task
 		self.total_steps = 0
 		self.crop_size = 64
 		# self.crop_size = 32
 		self.n_rotations = n_rotations
-		# self.pix_size = 0.003125
-		self.pix_size = 0.005
-		# self.in_shape = (320, 160, 6)
-		self.in_shape = (120, 160, 6)
+		# self.pix_size = 0.005
+		self.pix_size = 0.0025
+		# self.in_shape = (120, 160, 6)
+		self.in_shape = (240, 320, 6)
 		self.cam_config = cameras.RealSenseD415.CONFIG
 		self.models_dir = os.path.join(root_dir, 'checkpoints', self.name)
-		# self.bounds = np.array([[0.25, 0.75], [-0.5, 0.5], [0, 0.28]])
 		self.bounds = np.array([[0.1, 0.9], [-0.30, 0.30], [0, 0.3]])
 
 	def get_image(self, obs):
@@ -192,8 +191,11 @@ class TransporterAgent:
 		hmap = img[:, :, 3]
 		p0_xyz = utils.pix_to_xyz(p0_pix, hmap, self.bounds, self.pix_size)
 		p1_xyz = utils.pix_to_xyz(p1_pix, hmap, self.bounds, self.pix_size)
+		# p0_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p0_theta))
+		# p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
+
 		p0_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p0_theta))
-		p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
+		p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, np.pi-p1_theta))
 
 		return {
 				'pose0': (np.asarray(p0_xyz), np.asarray(p0_xyzw)),

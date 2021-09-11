@@ -92,8 +92,8 @@ class Task:
 		self.oracle_cams = cameras.Oracle.CONFIG
 
 		# Workspace bounds.
+		self.pix_size = 0.0025
 		# self.pix_size = 0.005
-		self.pix_size = 0.005
 
 		self.bounds = np.array([[0.1, 0.9], [-0.3, 0.3], [0, 0.3]])
 
@@ -106,7 +106,7 @@ class Task:
 		self.ink_path = []
 
 		self.pick_threshold = 0.03  ## m
-		self.grip_z_offset = 0.07
+		self.grip_z_offset = 0.04
 
 
 		self.arm = Jaco()
@@ -129,22 +129,52 @@ class Task:
 		self.grap_num = 0
 
 
+	# def _get_reward(self, weight_map, forbidden_area=None):
+	# 	self.analyzer.set_map(weight_map)
+	# 	if forbidden_area is not None:
+	# 		self.analyzer.add_obstacles(forbidden_area)
+	#
+	# 	self.analyzer.search()
+	#
+	# 	success_1, self.path1, cost_1 = self.analyzer.get_result(0)
+	# 	success_2, self.path2, cost_2 = self.analyzer.get_result(1)
+	#
+	# 	min_cost_1 = self.euler_dist(0)
+	# 	min_cost_2 = self.euler_dist(1)
+	#
+	# 	reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
+	# 	reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
+	# 	reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
+	#
+	# 	# if self.draw_circuit:
+	# 		#
+	# 		# self.show_path(weight_map, path_1, 0)
+	# 		# self.show_path(weight_map, path_2, 1)
+	#
+	# 	# self.analyzer.draw_map_3D()
+	# 	# self.analyzer.draw_map_3D_only()
+	# 	return reward
+
+
 	def _get_reward(self, weight_map, forbidden_area=None):
-		self.analyzer.set_map(weight_map)
-		if forbidden_area is not None:
-			self.analyzer.add_obstacles(forbidden_area)
 
-		self.analyzer.search()
 
-		success_1, self.path1, cost_1 = self.analyzer.get_result(0)
-		success_2, self.path2, cost_2 = self.analyzer.get_result(1)
-
-		min_cost_1 = self.euler_dist(0)
-		min_cost_2 = self.euler_dist(1)
-
-		reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
-		reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
-		reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
+		return 1
+		# self.analyzer.set_map(weight_map)
+		# if forbidden_area is not None:
+		# 	self.analyzer.add_obstacles(forbidden_area)
+		#
+		# self.analyzer.search()
+		#
+		# success_1, self.path1, cost_1 = self.analyzer.get_result(0)
+		# success_2, self.path2, cost_2 = self.analyzer.get_result(1)
+		#
+		# min_cost_1 = self.euler_dist(0)
+		# min_cost_2 = self.euler_dist(1)
+		#
+		# reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
+		# reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
+		# reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
 
 		# if self.draw_circuit:
 			#
@@ -153,7 +183,8 @@ class Task:
 
 		# self.analyzer.draw_map_3D()
 		# self.analyzer.draw_map_3D_only()
-		return reward
+		# return reward
+
 
 
 	def euler_dist(self, no):
@@ -169,9 +200,27 @@ class Task:
 			self.color_list.append(i)
 
 
-	def set_color(self):
+	def random_object(self):
+		obstacle_type = [self.obj_type['cuboid1'],
+		                 self.obj_type['cuboid2'],
+		                 self.obj_type['curve'],
+		                 self.obj_type['triangular_prism']]
+
+		return random.choice(obstacle_type)
+
+
+	def random_color(self):
 		color_num = random.randint(0, 8)
 		return self.color_list[color_num]
+
+
+	def compare_object_distance(self, base_1, base_2, base_3):
+		if abs(base_1[0] - base_2[0]) >= 0.06 and abs(base_1[0] - base_3[0]) >= 0.06:
+			return True
+
+		else:
+			return False
+
 
 
 	def compare_object_base(self, pick_pos, object_list):
@@ -216,9 +265,9 @@ class Task:
 		return weight_map
 
 
-	def set_add_electrode(self, black_x_offset=0.12, black_y_offset=0.05, white_x_offset=0.12, white_y_offset=-0.05):
+	def set_add_electrode(self, black_x_offset=0.06, black_y_offset=0.05, white_x_offset=0.06, white_y_offset=-0.05):
 
-		robot_x = 0.12
+		robot_x = 0.06
 		robot_y = 0.05
 
 
