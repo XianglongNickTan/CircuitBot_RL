@@ -118,7 +118,7 @@ class AllInOne(Task):
 
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
-									use_file=self.obj_type['bridge'],
+									use_file=self.obj_type['bridge2'],
 									rgbaColor=self.random_color(),
 									basePosition=base_3,
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
@@ -199,19 +199,15 @@ class AllInOne(Task):
 
 
 			else:
-				if base[1] < 0:
-					place_pos = (base[0], -0.26, place_z)
+				place_pos = (base[0], 0.26, place_z)
 
-				else:
-					place_pos = (base[0], 0.26, place_z)
 
 			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 
 			place_pose = (np.asarray(place_pos), np.asarray(place_orin))
 
 			self.grap_num += 1
-			# if self.grap_num == len(self.objects):
-			# 	self.grap_num = 0
+
 
 			return {'pose0': pick_pose, 'pose1': place_pose}
 

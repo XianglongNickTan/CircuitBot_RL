@@ -44,6 +44,7 @@ obj_curve = rootdir + "/curve.obj"
 obj_cylinder = rootdir + "/cylinder_4_4.obj"
 obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
 obj_bridge = rootdir + "/bridge_1.obj"
+obj_bridge2 = rootdir + "/bridge_2.obj"
 
 
 OBJECTS = {
@@ -54,7 +55,9 @@ OBJECTS = {
 	'curve': obj_curve,
 	'cylinder': obj_cylinder,
 	'triangular_prism': obj_triangular_prism,
-	'bridge': obj_bridge
+	'bridge1': obj_bridge,
+	'bridge2': obj_bridge2
+
 }
 
 
@@ -215,7 +218,7 @@ class Task:
 
 
 	def compare_object_distance(self, base_1, base_2, base_3):
-		if abs(base_1[0] - base_2[0]) >= 0.06 and abs(base_1[0] - base_3[0]) >= 0.06:
+		if abs(base_1[0] - base_2[0]) >= 0.1 and abs(base_1[0] - base_3[0]) >= 0.1:
 			return True
 
 		else:

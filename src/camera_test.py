@@ -32,7 +32,8 @@ obj_cuboid3 = rootdir + "/cuboid_8_8_4.obj"
 obj_curve = rootdir + "/curve.obj"
 obj_cylinder = rootdir + "/cylinder_4_4.obj"
 obj_triangular_prism = rootdir + "/triangular_prism_4_8.obj"
-obj_bridge = rootdir + "/bridge_1.obj"
+# obj_bridge = rootdir + "/bridge_1.obj"
+obj_bridge = rootdir + "/bridge_2.obj"
 
 
 OBJECTS = {

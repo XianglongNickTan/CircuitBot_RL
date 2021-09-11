@@ -200,12 +200,7 @@ class TransporterAgent:
 		# p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
 
 		p0_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p0_theta))
-<<<<<<< HEAD
 		p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, np.pi-p1_theta))
-=======
-		p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
-		print(math.degrees(-p1_theta))
->>>>>>> 6839c3316fb6ee5b81fdbe43c770844a860e48aa
 
 		return {
 				'pose0': (np.asarray(p0_xyz), np.asarray(p0_xyzw)),
