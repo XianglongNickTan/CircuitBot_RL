@@ -24,6 +24,9 @@ from ravens.models.transport_ablation import TransportPerPixelLoss
 from ravens.models.transport_goal import TransportGoal
 from ravens.utils import utils
 import tensorflow as tf
+import math
+
+import matplotlib.pyplot as plt
 
 from tasks import cameras
 
@@ -175,6 +178,7 @@ class TransporterAgent:
 
 		# Attention model forward pass.
 		pick_conf = self.attention.forward(img)
+		# self.plot_heat_map(pick_conf)
 		argmax = np.argmax(pick_conf)
 		argmax = np.unravel_index(argmax, shape=pick_conf.shape)
 		p0_pix = argmax[:2]
@@ -182,6 +186,7 @@ class TransporterAgent:
 
 		# Transport model forward pass.
 		place_conf = self.transport.forward(img, p0_pix)
+		# self.plot_heat_map_2(place_conf)
 		argmax = np.argmax(place_conf)
 		argmax = np.unravel_index(argmax, shape=place_conf.shape)
 		p1_pix = argmax[:2]
@@ -195,7 +200,12 @@ class TransporterAgent:
 		# p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
 
 		p0_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p0_theta))
+<<<<<<< HEAD
 		p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, np.pi-p1_theta))
+=======
+		p1_xyzw = utils.eulerXYZ_to_quatXYZW((0, -np.pi, -p1_theta))
+		print(math.degrees(-p1_theta))
+>>>>>>> 6839c3316fb6ee5b81fdbe43c770844a860e48aa
 
 		return {
 				'pose0': (np.asarray(p0_xyz), np.asarray(p0_xyzw)),
@@ -221,6 +231,17 @@ class TransporterAgent:
 		#   img_curr = input_image[:, :, :half]
 		#   img_goal = input_image[:, :, half:]
 		#   place_conf = self.transport.forward(img_curr, img_goal, p0_pix)
+	
+	def plot_heat_map(self, values, heightmap = None):
+		# plt.matshow(values, cmap = plt.cm.hot, vmin=0, vmax=5)
+		plt.matshow(values, cmap = plt.cm.hot, vmin=0, vmax=0.02)
+		plt.colorbar()
+		plt.show()
+
+	def plot_heat_map_2(self, values):
+		plt.matshow(np.sum(values, axis=2, keepdims=True), cmap = plt.cm.hot, vmin=0, vmax=0.00001655 * 36)
+		plt.colorbar()
+		plt.show()
 
 	def load(self, n_iter):
 		"""Load pre-trained models."""
@@ -251,7 +272,7 @@ class TransporterAgent:
 
 class OriginalTransporterAgent(TransporterAgent):
 
-	def __init__(self, name, task, n_rotations=2):
+	def __init__(self, name, task, n_rotations=1):
 		super().__init__(name, task, n_rotations)
 
 		self.attention = Attention(
@@ -260,7 +281,7 @@ class OriginalTransporterAgent(TransporterAgent):
 				preprocess=utils.preprocess)
 		self.transport = Transport(
 				in_shape=self.in_shape,
-				n_rotations=self.n_rotations,
+				n_rotations=4,
 				crop_size=self.crop_size,
 				preprocess=utils.preprocess)
 
@@ -316,7 +337,7 @@ class GoalTransporterAgent(TransporterAgent):
 class GoalNaiveTransporterAgent(TransporterAgent):
 	"""Naive version which stacks current and goal images through normal Transport."""
 
-	def __init__(self, name, task, n_rotations=36):
+	def __init__(self, name, task, n_rotations=1):
 		super().__init__(name, task, n_rotations)
 
 		# Stack the goal image for the vanilla Transport module.
