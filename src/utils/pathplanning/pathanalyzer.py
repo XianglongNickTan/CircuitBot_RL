@@ -52,7 +52,6 @@ class PathAnalyzer:
 		result_2 = PathResult()
 
 		if result_1.success:
-			print(self.path_planners[0].obstacles)
 			self.path_planners[1].add_obstacles(self.path_planners[0].obstacles)
 			for new_obstacle in result_1.path:
 				self.path_planners[1].add_obstacle(self.map.get_coordination(new_obstacle[0], new_obstacle[1]))
@@ -137,15 +136,15 @@ class PathAnalyzer:
 			Zp2 = [self.map.dem_map[pos[1], pos[0]] for pos in self.result[1].path]
 			ax.scatter(Xp2, Yp2, Zp2, c='b', s=200)
 		
-		path3 = []
-		for i in self.path_planners[0].obstacles:
-			if i.y < 80 and i.x < 60:
-				path3.append((i.x, i.y))
-		pathT3 = np.transpose(path3)
-		Xp3 = pathT3[0]
-		Yp3 = pathT3[1]
-		Zp3 = [self.map.dem_map[pos[1], pos[0]] for pos in path3]
-		ax.scatter(Xp3, Yp3, Zp3, c='r', s=5)
+		# path3 = []
+		# for i in self.path_planners[0].obstacles:
+		# 	if i.y < 80 and i.x < 60:
+		# 		path3.append((i.x, i.y))
+		# pathT3 = np.transpose(path3)
+		# Xp3 = pathT3[0]
+		# Yp3 = pathT3[1]
+		# Zp3 = [self.map.dem_map[pos[1], pos[0]] for pos in path3]
+		# ax.scatter(Xp3, Yp3, Zp3, c='r', s=5)
 
 		plt.show()
 

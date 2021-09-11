@@ -31,10 +31,10 @@ flags.DEFINE_string('root_dir', '../results', '')
 flags.DEFINE_string('data_dir', '../results/datasets', '')
 flags.DEFINE_bool('disp', True, '')
 flags.DEFINE_bool('shared_memory', False, '')
-flags.DEFINE_string('task', 'clear-obstacles', '')
+flags.DEFINE_string('task', 'all-in-one', '')
 flags.DEFINE_string('agent', 'transporter', '')
-flags.DEFINE_integer('n_demos', 10, '')
-flags.DEFINE_integer('n_steps', 100, '')
+flags.DEFINE_integer('n_demos', 100, '')
+flags.DEFINE_integer('n_steps', 1000, '')
 flags.DEFINE_integer('n_runs', 1, '')
 flags.DEFINE_integer('gpu', 0, '')
 flags.DEFINE_integer('gpu_limit', None, '')
@@ -98,7 +98,7 @@ def main(unused_argv):
       obs = env.reset()
       info = None
       reward = 0
-      for _ in range(task.max_steps):
+      for _ in range(10):
         act = agent.act(obs, info, goal)
         obs, reward, done, info = env.step(act)
         total_reward += reward

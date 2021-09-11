@@ -36,7 +36,7 @@ class Transport:
       preprocess: function to preprocess input images.
     """
     self.iters = 0
-    self.n_rotations = n_rotations
+    self.n_rotations = 4
     self.crop_size = crop_size  # crop size must be N*16 (e.g. 96)
     self.preprocess = preprocess
 

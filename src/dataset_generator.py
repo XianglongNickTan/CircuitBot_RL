@@ -10,12 +10,12 @@ from ravens.dataset import Dataset
 import tasks
 from env.environment import Environment
 
-flags.DEFINE_string('task', 'clear-obstacles', '')
+flags.DEFINE_string('task', 'all-in-one', '')
 flags.DEFINE_string('data_dir', '../results/datasets', '')
 flags.DEFINE_bool('disp', False, '')
 flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
-flags.DEFINE_integer('n', 10, '')
+flags.DEFINE_integer('n', 100, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
 flags.DEFINE_integer('hz', 240, '')
 
@@ -61,7 +61,6 @@ def main(unused_argv):
       if done:
         break
     episode.append((obs, None, reward, info))
-
     dataset.add(seed, episode)
 
 if __name__ == '__main__':
