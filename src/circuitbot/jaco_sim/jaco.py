@@ -64,7 +64,7 @@ class Jaco:
 
 
         ## goal variables ##
-        self.goalOrientation = p.getQuaternionFromEuler([0, -math.pi, 0])
+        self.goalOrientation = p.getQuaternionFromEuler([0, -math.pi, self.ori_offset])
 
         self.goalReached = False
         self.goalEpsilon = 0.1
@@ -291,3 +291,18 @@ class Jaco:
         self.place()
         self.remove_gripper_constraints()
         self.move_to(self.rest_pos, self.restOrientation)
+
+    def pick_hold(self, object, init_pos, init_ori):
+        """ pick and place object"""
+        self.move_to(init_pos, init_ori)
+        self.pick()
+        self.create_gripper_constraints(object)
+        self.move_to(self.lift_pos, self.goalOrientation)
+
+
+    def place_hold(self, object, end_pos, end_ori):
+        """ pick and place object"""
+        self.move_to(end_pos, end_ori)
+        # self.place()
+        # self.remove_gripper_constraints()
+        # self.move_to(self.rest_pos, self.restOrientation)

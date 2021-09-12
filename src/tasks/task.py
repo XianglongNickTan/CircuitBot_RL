@@ -178,12 +178,12 @@ class Task:
 		# reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
 		# reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
 		# reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
-
+		#
 		# if self.draw_circuit:
-			#
-			# self.show_path(weight_map, path_1, 0)
-			# self.show_path(weight_map, path_2, 1)
-
+		#
+		# 	self.show_path(weight_map, path_1, 0)
+		# 	self.show_path(weight_map, path_2, 1)
+		#
 		# self.analyzer.draw_map_3D()
 		# self.analyzer.draw_map_3D_only()
 		# return reward
@@ -444,7 +444,7 @@ class Task:
 
 
 			self.arm.move_to(center,
-			                 p.getQuaternionFromEuler([0, -math.pi, 0]))
+			                 p.getQuaternionFromEuler([0, -math.pi, 0.2]))
 
 			if no == 0:
 				color = [0,0,0,1]

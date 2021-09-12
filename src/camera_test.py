@@ -15,7 +15,7 @@ from circuitbot.jaco_sim.jaco import Jaco
 analyzer = PathAnalyzer()
 
 
-agent_cams = cameras.RealSenseD415.CONFIG
+agent_cams = cameras.Paper_plot.CONFIG
 # agent_cams = cameras.Oracle.CONFIG
 pix_size = 0.005
 
