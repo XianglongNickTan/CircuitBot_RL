@@ -32,6 +32,8 @@ class ConstructBridge(Task):
 
 		self.area_list = []
 
+		self.remove_zone()
+
 	def add_obstacles(self):
 
 		obstacle_type = self.obj_type['bridge1']
@@ -77,11 +79,9 @@ class ConstructBridge(Task):
 		self.arm.pick_place_object(move_object, pick_pos[0], pick_pos[1], place_pos[0], place_pos[1])
 
 
-	def remove_objects(self):
-		super(ConstructBridge, self).remove_objects()
-		if self.waste_zone:
-			for object in self.waste_zone:
-				p.removeBody(object)
+	def remove_zone(self):
+		for object in self.waste_zone:
+			p.removeBody(object)
 
 
 
