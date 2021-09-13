@@ -581,21 +581,23 @@ class Task:
 
 
 	def remove_objects(self):
-		for object in self.objects:
-			p.removeBody(object)
-		self.objects = []
+		if self.objects:
+			for object in self.objects:
+				p.removeBody(object)
+			self.objects = []
 
 		# for object in self.electrodeID:
 		# 	p.removeBody(object)
 		# self.electrodeID = []
+		if self.forbidden_area:
+			for object in self.forbidden_area:
+				p.removeBody(object)
+			self.forbidden_area = []
 
-		for object in self.forbidden_area:
-			p.removeBody(object)
-		self.forbidden_area = []
-
-		for object in self.ink_path:
-			p.removeBody(object)
-		self.ink_path = []
+		if self.ink_path:
+			for object in self.ink_path:
+				p.removeBody(object)
+			self.ink_path = []
 
 		# for object in self.waste_zone:
 		# 	p.removeBody(object)

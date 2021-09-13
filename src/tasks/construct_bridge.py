@@ -34,7 +34,7 @@ class ConstructBridge(Task):
 
 	def add_obstacles(self):
 
-		obstacle_type = self.obj_type['bridge']
+		obstacle_type = self.obj_type['bridge1']
 
 
 		base_x = 0.5 + 2 * (2 * random.random() - 1) / 10
@@ -42,16 +42,26 @@ class ConstructBridge(Task):
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
 									use_file=obstacle_type,
-									rgbaColor=self.set_color(),
+									rgbaColor=self.random_color(),
 									basePosition=[base_x,
 									              0.10 * (2 * random.random() - 1), 0.03],
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
 		                            object_list=self.objects
 									)
 
+		# base_x = 0.5 + 2 * (2 * random.random() - 1) / 10
+		#
+		# self.area_center = self.add_forbidden_area(
+		#                                 top_left=[base_x, -0.2 + random.random() / 10],
+	    #                                 bottom_right=[base_x + 0.07, 0.2 + random.random() / 10])
+
+		pos_index = random.choice([-1, 1])
+
+		base = 0.5 + 1.5 * random.choice([-1, 1]) * random.random() / 10
+
 		self.area_center = self.add_forbidden_area(
-		                                top_left=[0.9 - base_x, -0.2 + random.random() / 10],
-	                                    bottom_right=[0.9 - base_x + 0.07, 0.2 + random.random() / 10])
+			top_left=[base, -0.2 + pos_index * random.random() / 10],
+			bottom_right=[base + 0.03 + random.random() / 10, 0.2 + pos_index * random.random() / 10])
 
 
 	def apply_action(self, action=None):
@@ -68,35 +78,12 @@ class ConstructBridge(Task):
 
 
 	def remove_objects(self):
-		for object in self.objects:
-			p.removeBody(object)
-		self.objects = []
-
-		for object in self.electrodeID:
-			p.removeBody(object)
-		self.electrodeID = []
-
-		for object in self.forbidden_area:
-			p.removeBody(object)
-		self.forbidden_area = []
-
-		for object in self.ink_path:
-			p.removeBody(object)
-		self.ink_path = []
-	#
-
-	def reward(self):
-		weight_map = self.get_weight_map()
-		reward = self._get_reward(weight_map, self.area_list)
-
-		return reward, None
+		super(ConstructBridge, self).remove_objects()
+		if self.waste_zone:
+			for object in self.waste_zone:
+				p.removeBody(object)
 
 
-	def reset(self):
-		self.grap_num = 0
-		self.remove_objects()
-		self.set_add_electrode()
-		self.add_obstacles()
 
 
 	def get_discrete_oracle_agent(self):

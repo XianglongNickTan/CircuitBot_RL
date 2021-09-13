@@ -61,29 +61,6 @@ class ClearOneObstacle(Task):
 		self.arm.pick_place_object(move_object, pick_pos[0], pick_pos[1], place_pos[0], place_pos[1])
 
 
-	def remove_objects(self):
-		for object in self.objects:
-			p.removeBody(object)
-		self.objects = []
-
-		for object in self.electrodeID:
-			p.removeBody(object)
-		self.electrodeID = []
-
-	#
-	def reward(self):
-		weight_map = self.get_weight_map()
-		reward = self._get_reward(weight_map)
-
-		return reward, None
-
-
-
-	def reset(self):
-		self.remove_objects()
-
-		self.set_add_electrode()
-		self.add_obstacles()
 
 
 	def get_discrete_oracle_agent(self):
@@ -107,7 +84,6 @@ class ClearOneObstacle(Task):
 
 			pick_pose = (np.asarray(pick_pos), np.asarray(pick_orin))
 
-
 			place_z = self.grip_z_offset
 
 			place_pos = (0.22, -0.2, place_z)
@@ -115,7 +91,6 @@ class ClearOneObstacle(Task):
 			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 
 			place_pose = (np.asarray(place_pos), np.asarray(place_orin))
-
 
 			return {'pose0': pick_pose, 'pose1': place_pose}
 
