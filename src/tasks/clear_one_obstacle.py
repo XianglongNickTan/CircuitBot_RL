@@ -31,14 +31,15 @@ class ClearOneObstacle(Task):
 	def add_obstacles(self):
 		obstacle_type = [self.obj_type['cuboid1'],
 		                 self.obj_type['cuboid2'],
-		                 self.obj_type['cuboid3']]
+		                 self.obj_type['curve'],
+		                 self.obj_type['triangular_prism']]
 
-		obstacle = obstacle_type[random.randint(0, 2)]
+		obstacle = random.choice(obstacle_type)
 
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
 									use_file=obstacle,
-									rgbaColor=utils.COLORS['red'],
+									rgbaColor=self.random_color(),
 									basePosition=[0.3 + 4 * random.random() / 10,
 									              0.10 * (2 * random.random() - 1), 0.03],
 									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
@@ -107,13 +108,9 @@ class ClearOneObstacle(Task):
 			pick_pose = (np.asarray(pick_pos), np.asarray(pick_orin))
 
 
-			place_z = 0.04 + self.grip_z_offset
-			if base[1] > 0:
-				place_y = 0.22
+			place_z = self.grip_z_offset
 
-			else:
-				place_y = -0.22
-			place_pos = (base[0], place_y, place_z)
+			place_pos = (0.22, -0.2, place_z)
 
 			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 

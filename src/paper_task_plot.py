@@ -209,7 +209,7 @@ def build_bin():
 	                 )
 
 
-def set_add_electrode(black_x_offset=0.06, black_y_offset=-0.05, white_x_offset=0.06, white_y_offset=0.05):
+def set_add_electrode(black_x_offset=0.06, black_y_offset=0.05, white_x_offset=0.06, white_y_offset=-0.05):
 	robot_x = 0.06
 	robot_y = 0.05
 
@@ -257,7 +257,7 @@ def set_add_electrode(black_x_offset=0.06, black_y_offset=-0.05, white_x_offset=
 	utils.create_obj(p.GEOM_BOX,
 	                 mass=-1,
 	                 halfExtents=[0.040, 0.005, 0.0001],
-	                 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
+	                 rgbaColor=[0,0,0, 1],
 	                 basePosition=[0.94, robot_y, 0.01],
 	                 baseOrientation=[0, 0, 0, 1]
 	                 )
@@ -267,7 +267,7 @@ def set_add_electrode(black_x_offset=0.06, black_y_offset=-0.05, white_x_offset=
 	utils.create_obj(p.GEOM_BOX,
 	                 mass=-1,
 	                 halfExtents=[0.06, 0.005, 0.0001],
-	                 rgbaColor=[0, 0, 0, 1],
+	                 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
 	                 basePosition=[0.94, -robot_y, 0.01],
 	                 baseOrientation=[0, 0, 0, 1]
 	                 )
@@ -354,19 +354,19 @@ def set_add_electrode(black_x_offset=0.06, black_y_offset=-0.05, white_x_offset=
 
 	analyzer.set_map(np.zeros([80, 60]))
 
-	# analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
-	#                            [power_black_ele[0], power_black_ele[1]])
-	#
-	# analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
-	#                            [power_white_ele[0], power_white_ele[1]])
-
-
-
 	analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
 	                           [power_black_ele[0], power_black_ele[1]])
 
 	analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
 	                           [power_white_ele[0], power_white_ele[1]])
+
+
+
+	# analyzer.set_pathplan(0, [robot_ele[0], robot_ele[1]],
+	#                            [power_black_ele[0], power_black_ele[1]])
+	#
+	# analyzer.set_pathplan(1, [60 - robot_ele[0], robot_ele[1]],
+	#                            [power_white_ele[0], power_white_ele[1]])
 
 
 	electrode_list = []
@@ -620,12 +620,12 @@ analyzer.set_map(depth)
 analyzer.search()
 
 success_1, path1, cost_1 = analyzer.get_result(0)
-# success_2, path2, cost_2 = analyzer.get_result(1)
+success_2, path2, cost_2 = analyzer.get_result(1)
 
-show_path(depth, path1, 0)
-# show_path(depth, path2, 1)
+show_path(depth, path2, 1)
+show_path(depth, path1[:-40], 0)
 
-add_obstacles()
+# add_obstacles()
 depth = get_weight_map()
 
 
@@ -636,7 +636,7 @@ for item in path1:
 for i in range(10):
 	path2.insert(0, [35, 15-i])
 
-show_path(depth, path2[:-10], 1)
+# show_path(depth, path2[:-10], 1)
 
 
 # arm.pick_hold(object_list[0], [0.3, -0.2, 0.2], p.getQuaternionFromEuler([0,-np.pi, np.pi/2]))

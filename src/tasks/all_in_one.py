@@ -143,23 +143,6 @@ class AllInOne(Task):
 		self.arm.pick_place_object(move_object, pick_pos[0], pick_pos[1], place_pos[0], place_pos[1])
 
 
-	def remove_objects(self):
-		for object in self.objects:
-			p.removeBody(object)
-		self.objects = []
-
-		for object in self.electrodeID:
-			p.removeBody(object)
-		self.electrodeID = []
-
-		for object in self.forbidden_area:
-			p.removeBody(object)
-		self.forbidden_area = []
-
-		for object in self.ink_path:
-			p.removeBody(object)
-		self.ink_path = []
-	#
 
 	def reward(self):
 		weight_map = self.get_weight_map()

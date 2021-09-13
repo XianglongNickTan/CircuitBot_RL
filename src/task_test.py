@@ -8,7 +8,7 @@ import numpy as np
 from ravens.dataset import Dataset
 
 from env.environment import Environment
-# from tasks.clear_one_obstacle import ClearOneObstacle
+from tasks.clear_one_obstacle import ClearOneObstacle
 from tasks.all_in_one import AllInOne
 import tasks
 
@@ -20,7 +20,9 @@ flags.DEFINE_bool('shared_memory', False, '')
 flags.DEFINE_string('mode', 'train', '')
 flags.DEFINE_integer('n', 100, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
-flags.DEFINE_string('task', 'all-in-one', '')
+flags.DEFINE_string('task', 'clear-one-obstacle', '')
+# flags.DEFINE_string('task', 'all-in-one', '')
+# flags.DEFINE_string('task', 'all-in-one', '')
 
 FLAGS = flags.FLAGS
 

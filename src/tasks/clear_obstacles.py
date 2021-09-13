@@ -33,7 +33,7 @@ class ClearObstacles(Task):
 	def add_obstacles(self):
 		obstacle_type = [self.obj_type['cuboid1'],
 		                 self.obj_type['cuboid2'],
-		                 self.obj_type['cuboid3']]
+		                 self.obj_type['curve']]
 
 		obstacle = obstacle_type[random.randint(0, 2)]
 

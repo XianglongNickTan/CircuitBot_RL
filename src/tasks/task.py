@@ -70,7 +70,7 @@ COLORS = {
 	'purple': [176.0 / 255.0, 122.0 / 255.0, 161.0 / 255.0, 1],
 	'pink': [255.0 / 255.0, 157.0 / 255.0, 167.0 / 255.0, 1],
 	'cyan': [118.0 / 255.0, 183.0 / 255.0, 178.0 / 255.0, 1],
-	'brown': [156.0 / 255.0, 117.0 / 255.0, 095.0 / 255.0, 1],
+	# 'brown': [156.0 / 255.0, 117.0 / 255.0, 095.0 / 255.0, 1],
 	'gray': [186.0 / 255.0, 176.0 / 255.0, 172.0 / 255.0, 1]
 }
 
@@ -107,6 +107,7 @@ class Task:
 		self.electrodeID = []
 		self.forbidden_area = []
 		self.ink_path = []
+		self.waste_zone = []
 
 		self.pick_threshold = 0.03  ## m
 		self.grip_z_offset = 0.04
@@ -130,6 +131,11 @@ class Task:
 
 		self.draw_circuit = False
 		self.grap_num = 0
+
+		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+		self.add_wastle_zone()
+		self.set_add_electrode()
+		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 
 
 	# def _get_reward(self, weight_map, forbidden_area=None):
@@ -213,7 +219,7 @@ class Task:
 
 
 	def random_color(self):
-		color_num = random.randint(0, 8)
+		color_num = random.randint(0, 7)
 		return self.color_list[color_num]
 
 
@@ -268,6 +274,43 @@ class Task:
 		return weight_map
 
 
+	def add_wastle_zone(self):
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.005, 0.075, 0.001],
+		                 rgbaColor=[078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0, 1],
+		                 basePosition=[0.15, -0.20, 0.01],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.waste_zone
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.075, 0.005, 0.001],
+		                 rgbaColor=[078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0, 1],
+		                 basePosition=[0.22, -0.275, 0.01],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.waste_zone
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.005, 0.075, 0.001],
+		                 rgbaColor=[078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0, 1],
+		                 basePosition=[0.29, -0.20, 0.01],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.waste_zone
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.075, 0.005, 0.001],
+		                 rgbaColor=[078.0 / 255.0, 121.0 / 255.0, 167.0 / 255.0, 1],
+		                 basePosition=[0.22, -0.12, 0.01],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.waste_zone
+		                 )
+
 	def set_add_electrode(self, black_x_offset=0.06, black_y_offset=0.05, white_x_offset=0.06, white_y_offset=-0.05):
 
 		robot_x = 0.06
@@ -277,11 +320,66 @@ class Task:
 		robot_ele = np.asarray(utils.xyz_to_pix([robot_x + self.bounds[0, 0], robot_y, 0], self.bounds, 0.01))
 		robot_ele[1] = 79 - robot_ele[1]
 
+		### create extension electrode ###
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.040, 0.005, 0.0001],
+		                 rgbaColor=[0, 0, 0, 1],
+		                 basePosition=[0.06, robot_y, 0.0],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.005, 0.065, 0.0001],
+		                 rgbaColor=[0, 0, 0, 1],
+		                 basePosition=[0.02, 0.11, 0.0],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.06, 0.005, 0.0001],
+		                 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
+		                 basePosition=[0.05, -robot_y, 0.0],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.005, 0.135, 0.0001],
+		                 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
+		                 basePosition=[-0.01, 0.08, 0.0],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.040, 0.005, 0.0001],
+		                 rgbaColor=[0, 0, 0, 1],
+		                 basePosition=[0.94, robot_y, 0.01],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+		                 )
+
+		utils.create_obj(p.GEOM_BOX,
+		                 mass=-1,
+		                 halfExtents=[0.06, 0.005, 0.0001],
+		                 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
+		                 basePosition=[0.94, -robot_y, 0.01],
+		                 baseOrientation=[0, 0, 0, 1],
+		                 object_list=self.electrodeID
+		                 )
 
 		### create robot electrode ###
 		utils.create_obj(p.GEOM_BOX,
 						 mass=-1,
-						 halfExtents=[0.0075, 0.0075, 0.0001],
+						 halfExtents=[0.0085, 0.0085, 0.0001],
 						 rgbaColor=[0, 0, 0, 1],
 						 basePosition=[robot_x + self.bounds[0, 0], robot_y, 0.01],
 						 baseOrientation=[0, 0, 0, 1],
@@ -299,8 +397,8 @@ class Task:
 
 		utils.create_obj(p.GEOM_BOX,
 						 mass=-1,
-						 halfExtents=[0.0075, 0.0075, 0.0001],
-						 rgbaColor=[1, 1, 1, 1],
+						 halfExtents=[0.0085, 0.0085, 0.0001],
+						 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
 						 basePosition=[robot_x + self.bounds[0, 0], -robot_y, 0.01],
 						 baseOrientation=[0, 0, 0, 1],
 						 object_list=self.electrodeID
@@ -309,7 +407,7 @@ class Task:
 		utils.create_obj(p.GEOM_BOX,
 						 mass=-1,
 						 halfExtents=[robot_x/2, 0.005, 0.0001],
-						 rgbaColor=[1, 1, 1, 1],
+						 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
 						 basePosition=[robot_x/2 + self.bounds[0, 0], -robot_y, 0.01],
 						 baseOrientation=[0, 0, 0, 1],
 						 object_list=self.electrodeID
@@ -319,7 +417,7 @@ class Task:
 		### create power source electrode ###
 		utils.create_obj(p.GEOM_BOX,
 						 mass=-1,
-						 halfExtents=[0.0075, 0.0075, 0.0001],
+						 halfExtents=[0.0085, 0.0085, 0.0001],
 						 rgbaColor=[0, 0, 0, 1],
 						 basePosition=[self.bounds[0, 1] - black_x_offset, black_y_offset, 0.01],
 						 baseOrientation=[0, 0, 0, 1],
@@ -338,8 +436,8 @@ class Task:
 
 		utils.create_obj(p.GEOM_BOX,
 						 mass=-1,
-						 halfExtents=[0.0075, 0.0075, 0.0001],
-						 rgbaColor=[1, 1, 1, 1],
+						 halfExtents=[0.0085, 0.0085, 0.0001],
+						 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
 						 basePosition=[self.bounds[0, 1] - white_x_offset, white_y_offset, 0.01],
 						 baseOrientation=[0, 0, 0, 1],
 						 object_list=self.electrodeID
@@ -349,7 +447,7 @@ class Task:
 		utils.create_obj(p.GEOM_BOX,
 						 mass=-1,
 						 halfExtents=[white_x_offset/2, 0.005, 0.0001],
-						 rgbaColor=[1, 1, 1, 1],
+						 rgbaColor=[255.0 / 255.0, 087.0 / 255.0, 089.0 / 255.0, 1],
 						 basePosition=[self.bounds[0, 1] - white_x_offset / 2, white_y_offset, 0.01],
 						 baseOrientation=[0, 0, 0, 1],
 						 object_list=self.electrodeID
@@ -404,7 +502,7 @@ class Task:
 		utils.create_obj(p.GEOM_BOX,
 		           mass=-1,
 		           halfExtents=[length / 2, width / 2, 0.0001],
-		           rgbaColor=[1, 0, 0, 1],
+		           rgbaColor=[156.0 / 255.0, 117.0 / 255.0, 095.0 / 255.0, 1],
 		           basePosition=[center_x, center_y, 0.01],
 		           baseOrientation=[0, 0, 0, 1],
                    object_list=self.forbidden_area
@@ -487,9 +585,9 @@ class Task:
 			p.removeBody(object)
 		self.objects = []
 
-		for object in self.electrodeID:
-			p.removeBody(object)
-		self.electrodeID = []
+		# for object in self.electrodeID:
+		# 	p.removeBody(object)
+		# self.electrodeID = []
 
 		for object in self.forbidden_area:
 			p.removeBody(object)
@@ -498,6 +596,10 @@ class Task:
 		for object in self.ink_path:
 			p.removeBody(object)
 		self.ink_path = []
+
+		# for object in self.waste_zone:
+		# 	p.removeBody(object)
+		# self.waste_zone = []
 
 
 	def reward(self):
@@ -513,7 +615,6 @@ class Task:
 	def reset(self):
 		self.grap_num = 0
 		self.remove_objects()
-		self.set_add_electrode()
 		self.add_obstacles()
 
 
