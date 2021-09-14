@@ -22,8 +22,10 @@ flags.DEFINE_string('mode', 'train', '')
 flags.DEFINE_integer('n', 100, '')
 flags.DEFINE_integer('steps_per_seg', 3, '')
 # flags.DEFINE_string('task', 'clear-one-obstacle', '')
-flags.DEFINE_string('task', 'construct-bridge', '')
+# flags.DEFINE_string('task', 'construct-bridge', '')
 # flags.DEFINE_string('task', 'all-in-one', '')
+flags.DEFINE_string('task', 'clear-obstacles', '')
+
 
 FLAGS = flags.FLAGS
 

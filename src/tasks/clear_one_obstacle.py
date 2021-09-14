@@ -1,15 +1,9 @@
 import collections
 import random
 
-import math
 import numpy as np
-from tasks.task import Task
-# from ravens.utils import utils
 from utils import utils
-from gym import spaces
-import cv2
 
-import os, sys
 import pybullet as p
 
 from tasks.task import Task

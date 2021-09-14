@@ -133,66 +133,38 @@ class Task:
 		self.grap_num = 0
 
 		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
-		self.add_wastle_zone()
+		self.add_waste_zone()
 		self.set_add_electrode()
 		p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 
 
-	# def _get_reward(self, weight_map, forbidden_area=None):
-	# 	self.analyzer.set_map(weight_map)
-	# 	if forbidden_area is not None:
-	# 		self.analyzer.add_obstacles(forbidden_area)
-	#
-	# 	self.analyzer.search()
-	#
-	# 	success_1, self.path1, cost_1 = self.analyzer.get_result(0)
-	# 	success_2, self.path2, cost_2 = self.analyzer.get_result(1)
-	#
-	# 	min_cost_1 = self.euler_dist(0)
-	# 	min_cost_2 = self.euler_dist(1)
-	#
-	# 	reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
-	# 	reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
-	# 	reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
-	#
-	# 	# if self.draw_circuit:
-	# 		#
-	# 		# self.show_path(weight_map, path_1, 0)
-	# 		# self.show_path(weight_map, path_2, 1)
-	#
-	# 	# self.analyzer.draw_map_3D()
-	# 	# self.analyzer.draw_map_3D_only()
-	# 	return reward
-
 
 	def _get_reward(self, weight_map, forbidden_area=None):
 
+		self.analyzer.set_map(weight_map)
+		if forbidden_area is not None:
+			self.analyzer.add_obstacles(forbidden_area)
 
-		return 1
-		# self.analyzer.set_map(weight_map)
-		# if forbidden_area is not None:
-		# 	self.analyzer.add_obstacles(forbidden_area)
-		#
-		# self.analyzer.search()
-		#
-		# success_1, self.path1, cost_1 = self.analyzer.get_result(0)
-		# success_2, self.path2, cost_2 = self.analyzer.get_result(1)
-		#
-		# min_cost_1 = self.euler_dist(0)
-		# min_cost_2 = self.euler_dist(1)
-		#
-		# reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
-		# reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
-		# reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
-		#
+		self.analyzer.search()
+
+		success_1, self.path1, cost_1 = self.analyzer.get_result(0)
+		success_2, self.path2, cost_2 = self.analyzer.get_result(1)
+
+		min_cost_1 = self.euler_dist(0)
+		min_cost_2 = self.euler_dist(1)
+
+		reward_1 = math.e ** ((min_cost_1 - cost_1) / (min_cost_1 / 2)) if success_1 else 0
+		reward_2 = math.e ** ((min_cost_2 - cost_2) / (min_cost_2 / 2)) if success_2 else 0
+		reward = reward_1 * (min_cost_1 / (min_cost_1 + min_cost_2)) + reward_2 * (min_cost_2 / (min_cost_1 + min_cost_2))
+
 		# if self.draw_circuit:
 		#
 		# 	self.show_path(weight_map, path_1, 0)
 		# 	self.show_path(weight_map, path_2, 1)
-		#
+
 		# self.analyzer.draw_map_3D()
 		# self.analyzer.draw_map_3D_only()
-		# return reward
+		return reward
 
 
 
@@ -274,7 +246,7 @@ class Task:
 		return weight_map
 
 
-	def add_wastle_zone(self):
+	def add_waste_zone(self):
 		utils.create_obj(p.GEOM_BOX,
 		                 mass=-1,
 		                 halfExtents=[0.005, 0.075, 0.001],
