@@ -10,7 +10,7 @@ import pybullet as p
 from tasks.task import Task
 
 
-class ConstructBridge(Task):
+class ConstructBridges(Task):
 	""" remove one cube in the path"""
 
 	def __init__(self,
@@ -18,23 +18,22 @@ class ConstructBridge(Task):
 
 		super().__init__()
 
-		self.max_steps = 1
+		self.max_steps = 2
 
 		self.env = env
 
 		self.grap_num = 0
 		self.area_center = (0, 0)
 
-		self.area_list = []
-
 		self.remove_zone()
 
 	def add_obstacles(self):
 
 		obstacle_type = self.obj_type['bridge1']
+		self.area_center = []
 
 
-		base_x = 0.5 + 2 * (2 * random.random() - 1) / 10
+		base_x = 0.35 + 2 * (2 * random.random() - 1) / 10
 
 		utils.create_obj(p.GEOM_MESH,
 									mass=0.01,
@@ -46,20 +45,39 @@ class ConstructBridge(Task):
 		                            object_list=self.objects
 									)
 
-		# base_x = 0.5 + 2 * (2 * random.random() - 1) / 10
-		#
-		# self.area_center = self.add_forbidden_area(
-		#                                 top_left=[base_x, -0.2 + random.random() / 10],
-	    #                                 bottom_right=[base_x + 0.07, 0.2 + random.random() / 10])
+
+		base_x = 0.6 + random.random() / 5
+
+		utils.create_obj(p.GEOM_MESH,
+									mass=0.01,
+									use_file=obstacle_type,
+									rgbaColor=self.random_color(),
+									basePosition=[base_x,
+									              0.10 * (2 * random.random() - 1), 0.03],
+									baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi/2]),
+		                            object_list=self.objects
+									)
+
 
 		pos_index = random.choice([-1, 1])
 
-		base = 0.5 + 1.5 * random.choice([-1, 1]) * random.random() / 10
+		base = 0.55 + 1 * random.random() / 10
 
-		self.area_center = self.add_forbidden_area(
+		area_center = self.add_forbidden_area(
 			top_left=[base, -0.2 + pos_index * random.random() / 10],
-			bottom_right=[base + 0.03 + random.random() / 10, 0.2 + pos_index * random.random() / 10])
+			bottom_right=[base + 0.03 + random.random() / 15, 0.2 + pos_index * random.random() / 10])
 
+		self.area_center.append(area_center)
+
+		base = 0.28 + 1 * random.random() / 10
+		pos_index = random.choice([-1, 1])
+
+		area_center = self.add_forbidden_area(
+			top_left=[base, -0.2 + pos_index * random.random() / 10],
+			bottom_right=[base + 0.03 + random.random() / 15, 0.2 + pos_index * random.random() / 10])
+
+		self.pick_list = self.objects.copy()
+		self.area_center.append(area_center)
 
 	def apply_action(self, action=None):
 		pick_pos = action['pose0']
@@ -88,7 +106,8 @@ class ConstructBridge(Task):
 			"""Calculate action."""
 			# self._update_weight_map()
 
-			move_object = self.objects[0]
+			move_object = random.choice(self.pick_list)
+			self.pick_list.remove(move_object)
 
 			base, pick_orin = p.getBasePositionAndOrientation(move_object)
 
@@ -102,10 +121,18 @@ class ConstructBridge(Task):
 
 			pick_pose = (np.asarray(pick_pos), np.asarray(pick_orin))
 
+			distance = 100
+			for center in self.area_center:
+				distance_1 = abs(center[0] - base[0])
+				if distance_1 < distance:
+					distance = distance_1
+					center_choice = center
+
+			self.area_center.remove(center_choice)
 
 			place_z = 0.04 + self.grip_z_offset
 
-			place_pos = (self.area_center[0], self.area_center[1], place_z)
+			place_pos = (center_choice[0], center_choice[1], place_z)
 
 			place_orin = p.getQuaternionFromEuler([0, -np.pi, 0])
 

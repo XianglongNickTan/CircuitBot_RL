@@ -129,6 +129,8 @@ class Task:
 		self.path1 = []
 		self.path2 = []
 
+		self.forbi_list = []
+
 		self.draw_circuit = False
 		self.grap_num = 0
 
@@ -482,13 +484,12 @@ class Task:
 
 		top_left_pix = utils.xyz_to_pix([top_left[0], top_left[1], 0], self.bounds, 0.01)
 
-		ob_list = []
 
 		for i in range(int(length*100)):
 			for j in range(int(width*100)):
 				point = (top_left_pix[0] + j, 80 - (top_left_pix[1] + i))
 				# point = (top_left_pix[1] + j, top_left_pix[0] + i)
-				ob_list.append(point)
+				self.forbi_list.append(point)
 
 		# self.analyzer.add_obstacles(ob_list)
 
@@ -578,7 +579,7 @@ class Task:
 
 	def reward(self):
 		weight_map = self.get_weight_map()
-		reward = self._get_reward(weight_map, self.forbidden_area)
+		reward = self._get_reward(weight_map, self.forbi_list)
 
 		return reward, None
 
@@ -590,6 +591,8 @@ class Task:
 		self.grap_num = 0
 		self.remove_objects()
 		self.add_obstacles()
+
+		self.forbi_list = []
 
 
 
